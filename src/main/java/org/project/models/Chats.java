@@ -1,4 +1,4 @@
-package org.project.chats;
+package org.project.models;
 
 public interface Chats {
 }

@@ -1,4 +1,5 @@
 package org.project.server;
+
 import java.util.Collections;
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -7,13 +8,14 @@ import java.util.ArrayList;
 import java.util.List;
 import org.project.models.Packet;
 
+
 public class Server {
     private static final int PORT = 12345;
     private static List<ClientHandler> clients = Collections.synchronizedList(new ArrayList<>());
 
     public static void main(String[] args) throws IOException {
         ServerSocket serverSocket = new ServerSocket(PORT);
-        System.out.println("Server started...");
+        System.out.println("Server started on port " + PORT);
 
         while (true) {
             Socket socket = serverSocket.accept();
@@ -31,4 +33,5 @@ public class Server {
         }
     }
 }
+
 

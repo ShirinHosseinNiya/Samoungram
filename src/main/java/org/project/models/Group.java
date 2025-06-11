@@ -1,6 +1,5 @@
-package org.project.chats;
+package org.project.models;
 
-import org.project.Message;
 
 import java.util.ArrayList;
 import java.util.UUID;

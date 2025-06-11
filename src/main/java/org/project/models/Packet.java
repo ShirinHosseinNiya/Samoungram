@@ -2,23 +2,20 @@ package org.project.models;
 
 import java.io.Serializable;
 
-/**
- * بسته‌ی اطلاعاتی برای تبادل بین کلاینت و سرور
- */
 public class Packet implements Serializable {
-    private String type;   // نوع عملیات: مثلا LOGIN, MESSAGE, REGISTER, etc
-    private Object data;   // داده‌ی ارسال‌شده: مثلا یک Message یا User یا String
+    private PacketType type;
+    private Object data;
 
-    public Packet(String type, Object data) {
+    public Packet(PacketType type, Object data) {
         this.type = type;
         this.data = data;
     }
 
-    public String getType() {
+    public PacketType getType() {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(PacketType type) {
         this.type = type;
     }
 
@@ -33,8 +30,9 @@ public class Packet implements Serializable {
     @Override
     public String toString() {
         return "Packet{" +
-                "type='" + type + '\'' +
+                "type=" + type +
                 ", data=" + data +
                 '}';
     }
 }
+

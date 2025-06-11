@@ -1,4 +1,4 @@
-package org.project;
+package org.project.models;
 
 import org.mindrot.jbcrypt.BCrypt;
 

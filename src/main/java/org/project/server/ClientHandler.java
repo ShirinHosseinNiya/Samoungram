@@ -1,11 +1,14 @@
 package org.project.server;
+
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.util.Map;
 
-import org.project.Message;
 import org.project.models.Packet;
+import org.project.models.PacketType;
+import org.project.models.Message;
 
 public class ClientHandler implements Runnable {
     private Socket socket;
@@ -31,12 +34,23 @@ public class ClientHandler implements Runnable {
 
     private void handle(Packet packet) {
         switch (packet.getType()) {
-            case "SEND_MESSAGE":
+            case SEND_MESSAGE:
                 Message msg = (Message) packet.getData();
-                // ذخیره در دیتابیس و ارسال به کلاینت مقصد
-                Server.broadcast(new Packet("RECEIVE_MESSAGE", msg), this);
+                Server.broadcast(new Packet(PacketType.RECEIVE_MESSAGE, msg), this);
                 break;
-            // موارد دیگر مثل LOGIN، REGISTER، GROUP_CREATE و ...
+
+            case LOGIN:
+                Map<String, String> loginData = (Map<String, String>) packet.getData();
+                String username = loginData.get("username");
+                String password = loginData.get("password");
+
+                boolean loginSuccess = username.equals("admin") && password.equals("1234");
+                Packet response = new Packet(PacketType.LOGIN, loginSuccess ? "success" : "fail");
+                send(response);
+                break;
+
+            default:
+                System.out.println("Unhandled packet type: " + packet.getType());
         }
     }
 
@@ -48,3 +62,5 @@ public class ClientHandler implements Runnable {
         }
     }
 }
+
+

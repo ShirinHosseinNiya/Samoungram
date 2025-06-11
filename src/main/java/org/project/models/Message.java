@@ -1,4 +1,4 @@
-package org.project;
+package org.project.models;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
