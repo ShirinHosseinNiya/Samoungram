@@ -11,16 +11,31 @@ public class User {
     private String profileName;
     private String status;
 
-    public User(String username, String rawPassword, String profileName, String status) {
-        this.id = UUID.randomUUID();
+    // سازنده‌ی کامل
+    public User(UUID id, String username, String hashedPassword, String profileName, String status) {
+        this.id = id;
         this.username = username;
-        this.hashedPassword = hashPassword(rawPassword);
+        this.hashedPassword = hashedPassword;
         this.profileName = profileName;
         this.status = status;
     }
 
-    private String hashPassword(String rawPassword) {
-        return BCrypt.hashpw(rawPassword, BCrypt.gensalt());
+    // سازنده‌ی ساده با رمز خام (برای ثبت‌نام جدید)
+    public User(String username, String rawPassword, String profileName) {
+        this.id = UUID.randomUUID();
+        this.username = username;
+        this.hashedPassword = hashPassword(rawPassword);
+        this.profileName = profileName;
+        this.status = "online";
+    }
+
+    private String hashPassword(String password) {
+        return BCrypt.hashpw(password, BCrypt.gensalt());
+    }
+
+    // Getterها
+    public UUID getId() {
+        return id;
     }
 
     public String getUsername() {
@@ -38,8 +53,5 @@ public class User {
     public String getStatus() {
         return status;
     }
-
-    public UUID getId() {
-        return id;
-    }
 }
+
