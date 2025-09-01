@@ -19,23 +19,22 @@ public class AuthTest {
 
         switch (choice) {
             case 1:
-                // 🔐 Login
                 System.out.print("Username: ");
                 String username = scanner.nextLine();
 
                 System.out.print("Password: ");
                 String password = scanner.nextLine();
 
-                boolean success = userDAO.login(username, password);
-                if (success) {
-                    System.out.println("✅ Login successful. Welcome " + username + "!");
+                User loggedIn = userDAO.login(username, password);
+                if (loggedIn != null) {
+                    System.out.println("✅ Login successful. Welcome " + loggedIn.getUsername() + "!");
+                    System.out.println("Display name: " + loggedIn.getProfileName());
                 } else {
                     System.out.println("❌ Login failed. Wrong credentials.");
                 }
                 break;
 
             case 2:
-                // 📝 Sign Up
                 System.out.print("Choose username: ");
                 String newUsername = scanner.nextLine();
 
