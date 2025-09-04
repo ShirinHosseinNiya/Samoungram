@@ -30,4 +30,5 @@ public class Channel implements Chats {
 
     //setters
     public void setChannelName(String channelName) { this.channelName = channelName; }
+
 }

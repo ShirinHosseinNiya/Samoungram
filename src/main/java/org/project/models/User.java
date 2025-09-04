@@ -12,8 +12,9 @@ public class User {
     private String bio;
     private String profilePicture;
 
-    // 🔹 سازنده‌ی کامل (برای بارگذاری از دیتابیس)
+    // structor for reading data from the database
     public User(UUID id, String username, String hashedPassword, String profileName, String status) {
+
         this.id = id;
         this.username = username;
         this.hashedPassword = hashedPassword;
@@ -21,7 +22,7 @@ public class User {
         this.status = status;
     }
 
-    // 🔹 سازنده‌ی ساده با رمز خام (برای ثبت‌نام جدید)
+    // structor for new user logins
     public User(String username, String rawPassword, String profileName) {
         this.id = UUID.randomUUID();
         this.username = username;
@@ -32,58 +33,49 @@ public class User {
         this.profilePicture = "";
     }
 
-    // متد هش کردن پسورد
+    // hash password method
     private String hashPassword(String password) {
         return BCrypt.hashpw(password, BCrypt.gensalt());
     }
 
-    // ---------- Getter ها ----------
+    // getters
     public UUID getId() {
         return id;
     }
-
     public String getUsername() {
         return username;
     }
-
     public String getHashedPassword() {
         return hashedPassword;
     }
-
     public String getProfileName() {
         return profileName;
     }
-
     public String getStatus() {
         return status;
     }
-
     public String getBio() {
         return bio;
     }
-
     public String getProfilePicture() {
         return profilePicture;
     }
 
-    // ---------- Setter ها ----------
+    // setters
     public void setProfileName(String profileName) {
         this.profileName = profileName;
     }
-
     public void setStatus(String status) {
         this.status = status;
     }
-
     public void setBio(String bio) {
         this.bio = bio;
     }
-
     public void setProfilePicture(String profilePicture) {
         this.profilePicture = profilePicture;
     }
 
-    // ---------- متدهای کمکی ----------
+
     @Override
     public String toString() {
         return "User{" +
@@ -104,4 +96,3 @@ public class User {
         return this.id.equals(other.id);
     }
 }
-

@@ -10,7 +10,7 @@ public class AuthTest {
         Scanner scanner = new Scanner(System.in);
         UserDAO userDAO = new UserDAO();
 
-        System.out.println("📲 Welcome to Telegram System");
+        System.out.println("Welcome to Telegram System");
         System.out.println("=============================");
         System.out.println("1) Login");
         System.out.println("2) Sign Up");
@@ -27,10 +27,10 @@ public class AuthTest {
 
                 User loggedIn = userDAO.login(username, password);
                 if (loggedIn != null) {
-                    System.out.println("✅ Login successful. Welcome " + loggedIn.getUsername() + "!");
+                    System.out.println("Login successful. Welcome " + loggedIn.getUsername() + "!");
                     System.out.println("Display name: " + loggedIn.getProfileName());
                 } else {
-                    System.out.println("❌ Login failed. Wrong credentials.");
+                    System.out.println("Login failed. Wrong credentials.");
                 }
                 break;
 
@@ -39,7 +39,7 @@ public class AuthTest {
                 String newUsername = scanner.nextLine();
 
                 if (userDAO.usernameExists(newUsername)) {
-                    System.out.println("⚠️ Username already exists. Try another one.");
+                    System.out.println("Username already exists. Try another one.");
                     break;
                 }
 
@@ -53,16 +53,15 @@ public class AuthTest {
                 boolean registered = userDAO.registerUser(newUser);
 
                 if (registered) {
-                    System.out.println("✅ Sign Up successful! You can now login.");
+                    System.out.println("Sign Up successful! You can now login.");
                 } else {
-                    System.out.println("❌ Sign Up failed. Please try again later.");
+                    System.out.println("Sign Up failed. Please try again later.");
                 }
                 break;
 
             default:
-                System.out.println("🚫 Invalid option.");
+                System.out.println("Invalid option.");
         }
-
         scanner.close();
     }
 }

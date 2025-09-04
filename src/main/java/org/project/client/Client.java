@@ -33,13 +33,13 @@ public class Client {
                 Packet packet = (Packet) in.readObject();
                 switch (packet.getType()) {
                     case RECEIVE_MESSAGE:
-                        System.out.println("📩 New message: " + packet.getData());
+                        System.out.println("New message: " + packet.getData());
                         break;
                     case LOGIN:
-                        System.out.println("🔐 Login result: " + packet.getData());
+                        System.out.println("Login result: " + packet.getData());
                         break;
                     default:
-                        System.out.println("📦 Received: " + packet);
+                        System.out.println("Received: " + packet);
                 }
             }
         } catch (Exception e) {

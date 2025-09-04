@@ -6,8 +6,8 @@ import java.sql.SQLException;
 
 public class DBConnection {
     private static final String URL = "jdbc:postgresql://localhost:5432/postgres";
-    private static final String USER = "postgres"; // یوزرنیم واقعی
-    private static final String PASSWORD = "4510225342"; // پسورد واقعی
+    private static final String USER = "postgres";
+    private static final String PASSWORD = "12348765";
 
     public static Connection getConnection() throws SQLException {
         return DriverManager.getConnection(URL, USER, PASSWORD);
