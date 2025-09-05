@@ -1,6 +1,7 @@
 package org.project.models;
 
 import java.io.Serializable;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -40,19 +41,15 @@ public class Message implements Serializable {
     public UUID getSenderId() {
         return senderId;
     }
-
     public UUID getReceiverId() {
         return receiverId;
     }
-
     public String getContent() {
         return content;
     }
-
-    public LocalDateTime getTimestamp() {
+    public Timestamp getTimestamp() {
         return timestamp;
     }
-
     public MessageStatus getStatus() {
         return status;
     }
@@ -61,7 +58,6 @@ public class Message implements Serializable {
     public void setTimestamp(LocalDateTime timestamp) {
         this.timestamp = timestamp;
     }
-
     public void setStatus(MessageStatus status) {
         this.status = status;
     }

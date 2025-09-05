@@ -12,7 +12,7 @@ public class Group implements Chats {
     private ArrayList<Message> groupMessageHistory;
 
     //constructor
-    public Group (String groupName, UUID groupCreatorId) {
+    public Group (UUID groupid, String groupName, UUID groupCreatorId) {
         this.groupId = UUID.randomUUID();
         this.groupName = groupName;
         this.groupCreatorId = groupCreatorId;

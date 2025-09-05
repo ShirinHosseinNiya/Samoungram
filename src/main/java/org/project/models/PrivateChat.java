@@ -26,7 +26,7 @@ public class PrivateChat implements Chats {
     public UUID getParticipant2Id() { return participant2Id; }
     public List<Message> getChatMessageHistory() { return chatMessageHistory; }
 
-    private String generateChatId(UUID id1, UUID id2) {
+    public static String generateChatId(UUID id1, UUID id2) {
         return (id1.compareTo(id2) < 0 ? id1 + "_" + id2 : id2 + "_" + id1);        //ensures that both users will use yhe same chat id
     }
 }

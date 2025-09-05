@@ -2,10 +2,7 @@ package org.project.server.db;
 
 import org.project.models.Channel;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -17,35 +14,49 @@ public class ChannelDAO {
     }
 
     // creating new channels
-    public void addChannel(Channel channel) throws SQLException {
-        String insertChannel = "INSERT INTO channels (channel_id, channel_name, channel_owner_id) VALUES (?, ?, ?)";
-        String insertAllChats = "INSERT INTO all_chats (user_id, chat_id, last_message) VALUES (?, ?, ?)";
+    public void addChannel(Channel channel) {
+        String insertChannelSql = "INSERT INTO channels (channel_id, channel_name, channel_owner_id) VALUES (?, ?, ?)";
+        String insertChannelMemberSql = "INSERT INTO channel_members (channel_id, member_id) VALUES (?, ?)";
+        String insertAllChatsSql = "INSERT INTO all_chats (user_id, chat_id, last_message) VALUES (?, ?, ?)";
 
         try (Connection conn = DBConnection.getConnection()) {
             conn.setAutoCommit(false);
 
-            try (PreparedStatement stmt1 = conn.prepareStatement(insertChannel);
-            PreparedStatement stmt2 = conn.prepareStatement(insertAllChats)) {
-
-                // insert into channels
+            // adding the new channel
+            try (PreparedStatement stmt1 = conn.prepareStatement(insertChannelSql)) {
                 stmt1.setObject(1, channel.getChannelId());
                 stmt1.setString(2, channel.getChannelName());
                 stmt1.setObject(3, channel.getChannelOwnerId());
                 stmt1.executeUpdate();
+            }
 
-                // insert into all_chats
-                stmt2.setObject(1, channel.getChannelOwnerId());
-                stmt2.setObject(2, channel.getChannelId());
-                stmt2.setObject(3, LocalDateTime.now());
+            // adding the owner to the channel_members table
+            try (PreparedStatement stmt2 = conn.prepareStatement(insertChannelMemberSql)) {
+                stmt2.setObject(1, channel.getChannelId());
+                stmt2.setObject(2, channel.getChannelOwnerId());
                 stmt2.executeUpdate();
+            }
 
-                conn.commit();
-            } catch (SQLException e) {
-                conn.rollback();
-                throw e;
+            // adding the new channel to all_chats table
+            try (PreparedStatement stmt3 = conn.prepareStatement(insertAllChatsSql)) {
+                stmt3.setObject(1, channel.getChannelOwnerId());
+                stmt3.setObject(2, channel.getChannelId());
+                stmt3.setTimestamp(3, new Timestamp(System.currentTimeMillis()));
+                stmt3.executeUpdate();
+            }
+
+            conn.commit();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            try (Connection conn = DBConnection.getConnection()) {
+                conn.rollback(); // in case something goes wrong, all the commits will roll back
+            } catch (SQLException ex) {
+                ex.printStackTrace();
             }
         }
     }
+
 
     // getting channel by ID
     public Channel getChannelById(UUID channelId) throws SQLException {
