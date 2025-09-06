@@ -1,2 +1,4 @@
 rootProject.name = 'Telegram'
+include 'src:test:java'
+findProject(':src:test:java')?.name = 'java'
 

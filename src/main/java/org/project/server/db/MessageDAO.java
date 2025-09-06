@@ -1,48 +1,64 @@
 package org.project.server.db;
 
-import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-
 import org.project.models.Message;
 
+import java.sql.*;
+import java.util.*;
+
 public class MessageDAO {
+    private final Connection conn;
 
-    // saving new messages in database
-    public void insertMessage(Message message) throws SQLException {
-        String sql = "INSERT INTO message_history (sender_id, receiver_id, content, timestamp, status) VALUES (?, ?, ?, ?, ?)";
+    public MessageDAO(Connection conn) {
+        this.conn = conn;
+    }
 
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setObject(1, message.getSenderId());
-            stmt.setObject(2, message.getReceiverId());
-            stmt.setString(3, message.getContent());
-            stmt.setTimestamp(4, message.getTimestamp());
-            stmt.setString(5, message.getStatus().toString());
-            stmt.executeUpdate();
+    public void addMessage(Message message) throws SQLException {
+        String sql = "INSERT INTO message_history (message_id, sender_id, receiver_is, content, \"timestamp\", status) VALUES (?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, message.getMessageId());
+            ps.setObject(2, message.getSenderId());
+            ps.setObject(3, message.getReceiverId());
+            ps.setString(4, message.getContent());
+            ps.setTimestamp(5, message.getTimestamp());
+            ps.setString(6, String.valueOf(message.getStatus()));
+            ps.executeUpdate();
         }
     }
 
-    // getting messages from database
-    public List<Message> getMessagesByChatId(UUID receiverId) throws SQLException {
-        List<Message> messages = new ArrayList<>();
-        String sql = "SELECT * FROM message_history WHERE receiver_id = ? ORDER BY timestamp";
+    public void saveMessage(UUID messageId, UUID senderId, UUID receiverId, String content, Timestamp timestamp, String status) throws SQLException {
+        String sql = "INSERT INTO message_history (message_id, sender_id, receiver_is, content, \"timestamp\", status) VALUES (?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, messageId);
+            ps.setObject(2, senderId);
+            ps.setObject(3, receiverId);
+            ps.setString(4, content);
+            ps.setTimestamp(5, timestamp);
+            ps.setString(6, status);
+            ps.executeUpdate();
+        }
+    }
 
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setObject(1, receiverId);
-            ResultSet rs = stmt.executeQuery();
-            while (rs.next()) {
-                messages.add(new Message(
-                        (UUID) rs.getObject("sender_id"),
-                        (UUID) rs.getObject("receiver_id"),
-                        rs.getString("content"),
-                        rs.getTimestamp("timestamp").toLocalDateTime(),
-                        Message.MessageStatus.valueOf(rs.getString("status"))
-                ));
+    public List<String> getMessagesBetween(UUID user1, UUID user2) throws SQLException {
+        String sql = "SELECT content FROM message_history WHERE (sender_id = ? AND receiver_is = ?) OR (sender_id = ? AND receiver_is = ?) ORDER BY \"timestamp\"";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, user1);
+            ps.setObject(2, user2);
+            ps.setObject(3, user2);
+            ps.setObject(4, user1);
+            try (ResultSet rs = ps.executeQuery()) {
+                List<String> messages = new ArrayList<>();
+                while (rs.next()) messages.add(rs.getString(1));
+                return messages;
             }
         }
-        return messages;
+    }
+
+    public void updateMessageStatus(UUID messageId, String status) throws SQLException {
+        String sql = "UPDATE message_history SET status = ? WHERE message_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, status);
+            ps.setObject(2, messageId);
+            ps.executeUpdate();
+        }
     }
 }

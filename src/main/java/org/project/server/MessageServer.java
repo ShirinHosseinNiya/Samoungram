@@ -1,46 +1,58 @@
 package org.project.server;
 
 import org.project.models.Message;
-import org.project.models.PrivateChat;
-import org.project.server.db.ChatDAO;
-import org.project.server.db.DBConnection;
 import org.project.server.db.MessageDAO;
+import org.project.server.db.ChatDAO;
 
-import java.sql.*;
-import java.util.*;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.UUID;
 
 public class MessageServer {
-    private final MessageDAO messageDAO = new MessageDAO();
-    private final ChatDAO chatDAO = new ChatDAO();
+    private final MessageDAO messageDAO;
+    private final ChatDAO chatDAO;
 
-    // PV
+    public MessageServer(MessageDAO messageDAO, ChatDAO chatDAO) {
+        this.messageDAO = messageDAO;
+        this.chatDAO = chatDAO;
+    }
+
     public void sendMessageToUser(UUID senderId, UUID receiverId, String content) throws SQLException {
-        Message message = new Message(senderId, receiverId, content);
-        messageDAO.insertMessage(message);
-
-        // updating last_message for both users in all_chats table
-        chatDAO.updatePVLastMessage(senderId, PrivateChat.generateChatId(senderId, receiverId), message.getTimestamp());
-        chatDAO.updatePVLastMessage(receiverId, PrivateChat.generateChatId(senderId, receiverId), message.getTimestamp());
+        Message message = new Message(
+                UUID.randomUUID(),
+                senderId,
+                receiverId,
+                content,
+                new Timestamp(System.currentTimeMillis()),
+                "sent"
+        );
+        messageDAO.addMessage(message);
+        chatDAO.updatePVLastMessage(senderId, receiverId, message.getTimestamp());
     }
 
-    // groups
     public void sendMessageToGroup(UUID senderId, UUID groupId, String content) throws SQLException {
-        Message message = new Message(senderId, groupId, content);
-        messageDAO.insertMessage(message);
-
-        // updating last_message for all members
-        List<UUID> members = chatDAO.getGroupMembers(groupId);
-        for (UUID memberId : members) {
-            chatDAO.updateGroupChannelLastMessage(memberId, groupId, message.getTimestamp());
-        }
+        Message message = new Message(
+                UUID.randomUUID(),
+                senderId,
+                groupId,
+                content,
+                new Timestamp(System.currentTimeMillis()),
+                "sent"
+        );
+        messageDAO.addMessage(message);
+        chatDAO.updateGroupLastMessage(groupId, message.getTimestamp());
     }
 
-    // channels
     public void sendMessageToChannel(UUID senderId, UUID channelId, String content) throws SQLException {
-        Message message = new Message(senderId, channelId, content);
-        messageDAO.insertMessage(message);
-
-        // updating last_message for all members
-        chatDAO.updateGroupChannelLastMessage(senderId, channelId, message.getTimestamp());
+        Message message = new Message(
+                UUID.randomUUID(),
+                senderId,
+                channelId,
+                content,
+                new Timestamp(System.currentTimeMillis()),
+                "sent"
+        );
+        messageDAO.addMessage(message);
+        chatDAO.updateChannelLastMessage(channelId, message.getTimestamp());
     }
 }

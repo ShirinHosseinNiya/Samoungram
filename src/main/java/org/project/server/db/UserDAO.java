@@ -1,122 +1,92 @@
 package org.project.server.db;
 
-import org.project.models.User;
-import org.mindrot.jbcrypt.BCrypt;
+import org.project.util.PasswordUtil;
 
 import java.sql.*;
 import java.util.UUID;
 
 public class UserDAO {
+    private final Connection conn;
 
-    // ✅ ثبت‌نام کاربر جدید
-    public boolean registerUser(User user) {
-        String sql = "INSERT INTO users (id, username, password_hash, profile_name, bio, profile_picture, status) VALUES (?, ?, ?, ?, ?, ?, ?)";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setObject(1, user.getId());
-            stmt.setString(2, user.getUsername());
-            stmt.setString(3, user.getHashedPassword());
-            stmt.setString(4, user.getProfileName());
-            stmt.setString(5, user.getBio());
-            stmt.setString(6, user.getProfilePicture());
-            stmt.setString(7, user.getStatus());
-
-            return stmt.executeUpdate() > 0;
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
+    public UserDAO(Connection conn) {
+        this.conn = conn;
     }
 
-    // ✅ ورود کاربر
-    public User login(String username, String rawPassword) {
-        String sql = "SELECT * FROM users WHERE username = ?";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+    public UUID register(String username, String rawPassword, String profileName) throws SQLException {
+        if (username == null || rawPassword == null || profileName == null) return null;
+        if (findUserIdByUsername(username) != null) return null;
+        UUID id = UUID.randomUUID();
+        String hash = PasswordUtil.hashPassword(rawPassword);
+        String sql = "INSERT INTO users (id, username, password_hash, profile_name) VALUES (?, ?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, id);
+            ps.setString(2, username);
+            ps.setString(3, hash);
+            ps.setString(4, profileName);
+            ps.executeUpdate();
+        }
+        return id;
+    }
 
-            stmt.setString(1, username);
-            ResultSet rs = stmt.executeQuery();
-
-            if (rs.next()) {
-                String storedHash = rs.getString("password_hash");
-                if (BCrypt.checkpw(rawPassword, storedHash)) {
-                    User user = new User(
-                            rs.getObject("id", UUID.class),
-                            rs.getString("username"),
-                            rs.getString("password_hash"),
-                            rs.getString("profile_name"),
-                            rs.getString("status")
-                    );
-                    user.setBio(rs.getString("bio"));
-                    user.setProfilePicture(rs.getString("profile_picture"));
-
-                    // بروزرسانی وضعیت به آنلاین
-                    updateStatus(user.getId(), "online");
-
-                    return user;
-                }
+    public UUID login(String username, String rawPassword) throws SQLException {
+        String sql = "SELECT id, password_hash FROM users WHERE username = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, username);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) return null;
+                UUID id = (UUID) rs.getObject("id");
+                String hash = rs.getString("password_hash");
+                return PasswordUtil.checkPassword(rawPassword, hash) ? id : null;
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return null; // ورود ناموفق
-    }
-
-    // ✅ چک کردن تکراری بودن یوزرنیم
-    public boolean usernameExists(String username) {
-        String sql = "SELECT 1 FROM users WHERE username = ?";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setString(1, username);
-            ResultSet rs = stmt.executeQuery();
-            return rs.next();
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
         }
     }
 
-    // ✅ تغییر پروفایل کاربر
-    public boolean updateProfile(UUID userId, String profileName, String bio, String picture, String status) {
-        String sql = "UPDATE users SET profile_name=?, bio=?, profile_picture=?, status=? WHERE id=?";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setString(1, profileName);
-            stmt.setString(2, bio);
-            stmt.setString(3, picture);
-            stmt.setString(4, status);
-            stmt.setObject(5, userId);
-
-            return stmt.executeUpdate() > 0;
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
+    public UUID findUserIdByUsername(String username) throws SQLException {
+        String sql = "SELECT id FROM users WHERE username = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, username);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return (UUID) rs.getObject(1);
+                return null;
+            }
         }
     }
 
-    // ✅ تغییر وضعیت کاربر (Online/Offline)
-    public boolean updateStatus(UUID userId, String status) {
-        String sql = "UPDATE users SET status=? WHERE id=?";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+    public ResultSet findById(UUID userId) throws SQLException {
+        String sql = "SELECT id, username, profile_name, status, bio, profile_picture FROM users WHERE id = ?";
+        PreparedStatement ps = conn.prepareStatement(sql);
+        ps.setObject(1, userId);
+        return ps.executeQuery();
+    }
 
-            stmt.setString(1, status);
-            stmt.setObject(2, userId);
-            return stmt.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
+    public boolean updateProfile(UUID userId, String profileName, String status, String bio, String profilePicture) throws SQLException {
+        String sql = "UPDATE users SET profile_name = ?, status = ?, bio = ?, profile_picture = ? WHERE id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, profileName);
+            ps.setString(2, status);
+            ps.setString(3, bio);
+            ps.setString(4, profilePicture);
+            ps.setObject(5, userId);
+            return ps.executeUpdate() > 0;
         }
     }
 
-    // ✅ خروج کاربر (logout)
-    public boolean logout(UUID userId) {
-        return updateStatus(userId, "offline");
+    public boolean changePassword(UUID userId, String oldRawPassword, String newRawPassword) throws SQLException {
+        String sql = "SELECT password_hash FROM users WHERE id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) return false;
+                String currentHash = rs.getString(1);
+                if (!PasswordUtil.checkPassword(oldRawPassword, currentHash)) return false;
+            }
+        }
+        String newHash = PasswordUtil.hashPassword(newRawPassword);
+        String upd = "UPDATE users SET password_hash = ? WHERE id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(upd)) {
+            ps.setString(1, newHash);
+            ps.setObject(2, userId);
+            return ps.executeUpdate() > 0;
+        }
     }
 }
-
-

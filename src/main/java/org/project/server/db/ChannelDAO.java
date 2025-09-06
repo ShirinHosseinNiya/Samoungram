@@ -1,111 +1,75 @@
 package org.project.server.db;
 
-import org.project.models.Channel;
-
 import java.sql.*;
-import java.time.LocalDateTime;
-import java.util.UUID;
+import java.util.*;
 
 public class ChannelDAO {
-    private Connection conn;
+    private final Connection conn;
 
     public ChannelDAO(Connection conn) {
         this.conn = conn;
     }
 
-    // creating new channels
-    public void addChannel(Channel channel) {
-        String insertChannelSql = "INSERT INTO channels (channel_id, channel_name, channel_owner_id) VALUES (?, ?, ?)";
-        String insertChannelMemberSql = "INSERT INTO channel_members (channel_id, member_id) VALUES (?, ?)";
-        String insertAllChatsSql = "INSERT INTO all_chats (user_id, chat_id, last_message) VALUES (?, ?, ?)";
+    public void createChannel(UUID channelId, String channelName, UUID ownerId) throws SQLException {
+        String sql = "INSERT INTO channels (channel_id, channel_name, channel_owner_id) VALUES (?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, channelId);
+            ps.setString(2, channelName);
+            ps.setObject(3, ownerId);
+            ps.executeUpdate();
+        }
+    }
 
-        try (Connection conn = DBConnection.getConnection()) {
-            conn.setAutoCommit(false);
-
-            // adding the new channel
-            try (PreparedStatement stmt1 = conn.prepareStatement(insertChannelSql)) {
-                stmt1.setObject(1, channel.getChannelId());
-                stmt1.setString(2, channel.getChannelName());
-                stmt1.setObject(3, channel.getChannelOwnerId());
-                stmt1.executeUpdate();
-            }
-
-            // adding the owner to the channel_members table
-            try (PreparedStatement stmt2 = conn.prepareStatement(insertChannelMemberSql)) {
-                stmt2.setObject(1, channel.getChannelId());
-                stmt2.setObject(2, channel.getChannelOwnerId());
-                stmt2.executeUpdate();
-            }
-
-            // adding the new channel to all_chats table
-            try (PreparedStatement stmt3 = conn.prepareStatement(insertAllChatsSql)) {
-                stmt3.setObject(1, channel.getChannelOwnerId());
-                stmt3.setObject(2, channel.getChannelId());
-                stmt3.setTimestamp(3, new Timestamp(System.currentTimeMillis()));
-                stmt3.executeUpdate();
-            }
-
-            conn.commit();
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-            try (Connection conn = DBConnection.getConnection()) {
-                conn.rollback(); // in case something goes wrong, all the commits will roll back
-            } catch (SQLException ex) {
-                ex.printStackTrace();
+    public UUID getChannelOwnerId(UUID channelId) throws SQLException {
+        String sql = "SELECT channel_owner_id FROM channels WHERE channel_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, channelId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return (UUID) rs.getObject(1);
+                return null;
             }
         }
     }
 
-
-    // getting channel by ID
-    public Channel getChannelById(UUID channelId) throws SQLException {
-        String sql = "SELECT * FROM channels WHERE channel_id = ?";
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setObject(1, channelId);
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                return new Channel(
-                        rs.getString("channel_name"),
-                        UUID.fromString(rs.getString("channel_owner_id"))
-                );
-            }
+    public void addMemberToChannel(UUID channelId, UUID memberId) throws SQLException {
+        String sql = "INSERT INTO channel_members (channel_id, member_id) VALUES (?, ?) ON CONFLICT DO NOTHING";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, channelId);
+            ps.setObject(2, memberId);
+            ps.executeUpdate();
         }
-        return null;
     }
 
-    // deleting channel
-    public boolean deleteChannel(UUID channelId) {
-        String deleteAllChatsSql = "DELETE FROM all_chats WHERE chat_id = ?";
-        String deleteChannelSql = "DELETE FROM channels WHERE channel_id = ?";
+    public void removeMemberFromChannel(UUID channelId, UUID memberId) throws SQLException {
+        String sql = "DELETE FROM channel_members WHERE channel_id = ? AND member_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, channelId);
+            ps.setObject(2, memberId);
+            ps.executeUpdate();
+        }
+    }
 
-        try (Connection conn = DBConnection.getConnection()) {
-            conn.setAutoCommit(false);
-
-            // deleting from all_chats
-            try (PreparedStatement stmt1 = conn.prepareStatement(deleteAllChatsSql)) {
-                stmt1.setObject(1, channelId);
-                stmt1.executeUpdate();
-            }
-
-            // deleting from channels
-            try (PreparedStatement stmt2 = conn.prepareStatement(deleteChannelSql)) {
-                stmt2.setObject(1, channelId);
-                int affected = stmt2.executeUpdate();
-
-                conn.commit();
-                return affected > 0; // if the channel was deleted
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-            try {
-                // if an error happened
-                DBConnection.getConnection().rollback();
-            } catch (SQLException ex) {
-                ex.printStackTrace();
+    public List<UUID> listMemberIds(UUID channelId) throws SQLException {
+        String sql = "SELECT member_id FROM channel_members WHERE channel_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, channelId);
+            try (ResultSet rs = ps.executeQuery()) {
+                List<UUID> ids = new ArrayList<>();
+                while (rs.next()) ids.add((UUID) rs.getObject(1));
+                return ids;
             }
         }
-        return false;
+    }
+
+    public Map<UUID, String> listMemberProfiles(UUID channelId) throws SQLException {
+        String sql = "SELECT u.id, u.profile_name FROM channel_members cm JOIN users u ON u.id = cm.member_id WHERE cm.channel_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, channelId);
+            try (ResultSet rs = ps.executeQuery()) {
+                Map<UUID, String> out = new LinkedHashMap<>();
+                while (rs.next()) out.put((UUID) rs.getObject(1), rs.getString(2));
+                return out;
+            }
+        }
     }
 }

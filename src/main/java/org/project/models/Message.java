@@ -1,35 +1,18 @@
 package org.project.models;
 
-import java.io.Serializable;
-import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.util.UUID;
+import java.sql.Timestamp;
 
-public class Message implements Serializable {
-
-    public enum MessageStatus {
-        SENT,
-        DELIVERED,
-        READ
-    }
-
+public class Message {
+    private UUID messageId;
     private UUID senderId;
     private UUID receiverId;
     private String content;
-    private LocalDateTime timestamp;
-    private MessageStatus status;
+    private Timestamp timestamp;
+    private String status;
 
-    // Constructor for new message creation
-    public Message(UUID senderId, UUID receiverId, String content) {
-        this.senderId = senderId;
-        this.receiverId = receiverId;
-        this.content = content;
-        this.timestamp = LocalDateTime.now();
-        this.status = MessageStatus.SENT;
-    }
-
-    // Optional constructor with all fields
-    public Message(UUID senderId, UUID receiverId, String content, LocalDateTime timestamp, MessageStatus status) {
+    public Message(UUID messageId, UUID senderId, UUID receiverId, String content, Timestamp timestamp, String status) {
+        this.messageId = messageId;
         this.senderId = senderId;
         this.receiverId = receiverId;
         this.content = content;
@@ -37,28 +20,10 @@ public class Message implements Serializable {
         this.status = status;
     }
 
-    // Getters
-    public UUID getSenderId() {
-        return senderId;
-    }
-    public UUID getReceiverId() {
-        return receiverId;
-    }
-    public String getContent() {
-        return content;
-    }
-    public Timestamp getTimestamp() {
-        return timestamp;
-    }
-    public MessageStatus getStatus() {
-        return status;
-    }
-
-    // Setters
-    public void setTimestamp(LocalDateTime timestamp) {
-        this.timestamp = timestamp;
-    }
-    public void setStatus(MessageStatus status) {
-        this.status = status;
-    }
+    public UUID getMessageId() { return messageId; }
+    public UUID getSenderId() { return senderId; }
+    public UUID getReceiverId() { return receiverId; }
+    public String getContent() { return content; }
+    public Timestamp getTimestamp() { return timestamp; }
+    public String getStatus() { return status; }
 }

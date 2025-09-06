@@ -1,32 +1,27 @@
 package org.project.models;
 
-
-
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
-public class PrivateChat implements Chats {
-    private String chatId;
-    private UUID participant1Id;
-    private UUID participant2Id;
-    private List<Message> chatMessageHistory;
+public class PrivateChat {
+    private UUID chatId;
+    private UUID participate1Id;
+    private UUID participate2Id;
 
-    //constructor
-    public PrivateChat(UUID participant1Id, UUID participant2Id) {
-        this.participant1Id = participant1Id;
-        this.participant2Id = participant2Id;
-        this.chatId = generateChatId(participant1Id, participant2Id);
-        this.chatMessageHistory = new ArrayList<>();
+    public PrivateChat(UUID chatId, UUID participate1Id, UUID participate2Id) {
+        this.chatId = chatId;
+        this.participate1Id = participate1Id;
+        this.participate2Id = participate2Id;
     }
 
-    //getters
-    public String getChatId() { return chatId; }
-    public UUID getParticipant1Id() { return participant1Id; }
-    public UUID getParticipant2Id() { return participant2Id; }
-    public List<Message> getChatMessageHistory() { return chatMessageHistory; }
+    public UUID getChatId() {
+        return chatId;
+    }
 
-    public static String generateChatId(UUID id1, UUID id2) {
-        return (id1.compareTo(id2) < 0 ? id1 + "_" + id2 : id2 + "_" + id1);        //ensures that both users will use yhe same chat id
+    public UUID getParticipate1Id() {
+        return participate1Id;
+    }
+
+    public UUID getParticipate2Id() {
+        return participate2Id;
     }
 }

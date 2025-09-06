@@ -1,117 +1,79 @@
 package org.project.server.db;
 
-import org.project.models.Group;
-import org.project.server.db.DBConnection;
-
 import java.sql.*;
-import java.util.UUID;
+import java.util.*;
+
 public class GroupDAO {
-    // creating new group
-    public void addGroup(Group group) {
-        String insertGroupSql = "INSERT INTO groups (groupid, groupname, groupcreatorid) VALUES (?, ?, ?)";
-        String insertGroupMemberSql = "INSERT INTO group_members (group_id, member_id) VALUES (?, ?)";
-        String insertAllChatsSql = "INSERT INTO all_chats (user_id, chat_id, last_message) VALUES (?, ?, ?)";
+    private final Connection conn;
 
-        try (Connection conn = DBConnection.getConnection()) {
-            conn.setAutoCommit(false);
+    public GroupDAO(Connection conn) {
+        this.conn = conn;
+    }
 
-            // adding the group
-            try (PreparedStatement stmt1 = conn.prepareStatement(insertGroupSql)) {
-                stmt1.setObject(1, group.getGroupId());
-                stmt1.setString(2, group.getGroupName());
-                stmt1.setObject(3, group.getGroupCreatorId());
-                stmt1.executeUpdate();
-            }
+    public void createGroup(UUID groupId, String groupName, UUID creatorId) throws SQLException {
+        String sql = "INSERT INTO groups (groupid, groupname, groupcreatorid) VALUES (?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, groupId);
+            ps.setString(2, groupName);
+            ps.setObject(3, creatorId);
+            ps.executeUpdate();
+        }
+    }
 
-            // adding the creator to the group_members table
-            try (PreparedStatement stmt2 = conn.prepareStatement(insertGroupMemberSql)) {
-                stmt2.setObject(1, group.getGroupId());
-                stmt2.setObject(2, group.getGroupCreatorId());
-                stmt2.executeUpdate();
-            }
+    public void addGroup(UUID groupId, String groupName, UUID creatorId) throws SQLException {
+        createGroup(groupId, groupName, creatorId);
+    }
 
-            // adding the group to all_chats table
-            try (PreparedStatement stmt3 = conn.prepareStatement(insertAllChatsSql)) {
-                stmt3.setObject(1, group.getGroupCreatorId());
-                stmt3.setObject(2, group.getGroupId());
-                stmt3.setTimestamp(3, new Timestamp(System.currentTimeMillis())); // زمان ساخت
-                stmt3.executeUpdate();
-            }
-
-            conn.commit();
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-            try (Connection conn = DBConnection.getConnection()) {
-                conn.rollback(); // in case something goes wrong, all the commits will roll back
-            } catch (SQLException ex) {
-                ex.printStackTrace();
+    public UUID getGroupCreatorId(UUID groupId) throws SQLException {
+        String sql = "SELECT groupcreatorid FROM groups WHERE groupid = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, groupId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return (UUID) rs.getObject(1);
+                return null;
             }
         }
     }
 
-
-    // getting the group with id
-    public Group getGroupById(UUID groupId) {
-        String sql = "SELECT * FROM groups WHERE groupid = ?";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setObject(1, groupId);
-            ResultSet rs = stmt.executeQuery();
-
-            if (rs.next()) {
-                return new Group(
-                        (UUID) rs.getObject("groupid"),
-                        rs.getString("groupname"),
-                        (UUID) rs.getObject("groupcreatorid")
-                );
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
+    public void addMemberToGroup(UUID groupId, UUID memberId) throws SQLException {
+        String sql = "INSERT INTO group_members (group_id, member_id) VALUES (?, ?) ON CONFLICT DO NOTHING";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, groupId);
+            ps.setObject(2, memberId);
+            ps.executeUpdate();
         }
-        return null;
     }
 
-    // deleting the group
-    public boolean deleteGroup(UUID groupId) {
-        String deleteGroupMembersSql = "DELETE FROM group_members WHERE group_id = ?";
-        String deleteAllChatsSql = "DELETE FROM all_chats WHERE chat_id = ?";
-        String deleteGroupSql = "DELETE FROM groups WHERE groupid = ?";
+    public void removeMemberFromGroup(UUID groupId, UUID memberId) throws SQLException {
+        String sql = "DELETE FROM group_members WHERE group_id = ? AND member_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, groupId);
+            ps.setObject(2, memberId);
+            ps.executeUpdate();
+        }
+    }
 
-        try (Connection conn = DBConnection.getConnection()) {
-            conn.setAutoCommit(false);
-
-            // deleting members
-            try (PreparedStatement stmt1 = conn.prepareStatement(deleteGroupMembersSql)) {
-                stmt1.setObject(1, groupId);
-                stmt1.executeUpdate();
-            }
-
-            // deleting the group from all_chats table
-            try (PreparedStatement stmt2 = conn.prepareStatement(deleteAllChatsSql)) {
-                stmt2.setObject(1, groupId);
-                stmt2.executeUpdate();
-            }
-
-            // deleting the group
-            try (PreparedStatement stmt3 = conn.prepareStatement(deleteGroupSql)) {
-                stmt3.setObject(1, groupId);
-                int affected = stmt3.executeUpdate();
-
-                conn.commit();
-                return affected > 0;
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-            try (Connection conn = DBConnection.getConnection()) {
-                conn.rollback();
-            } catch (SQLException ex) {
-                ex.printStackTrace();
+    public List<UUID> listMemberIds(UUID groupId) throws SQLException {
+        String sql = "SELECT member_id FROM group_members WHERE group_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, groupId);
+            try (ResultSet rs = ps.executeQuery()) {
+                List<UUID> ids = new ArrayList<>();
+                while (rs.next()) ids.add((UUID) rs.getObject(1));
+                return ids;
             }
         }
-        return false;
+    }
+
+    public Map<UUID, String> listMemberProfiles(UUID groupId) throws SQLException {
+        String sql = "SELECT u.id, u.profile_name FROM group_members gm JOIN users u ON u.id = gm.member_id WHERE gm.group_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, groupId);
+            try (ResultSet rs = ps.executeQuery()) {
+                Map<UUID, String> out = new LinkedHashMap<>();
+                while (rs.next()) out.put((UUID) rs.getObject(1), rs.getString(2));
+                return out;
+            }
+        }
     }
 }

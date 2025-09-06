@@ -1,26 +1,37 @@
 plugins {
     id 'java'
+    id 'application'
 }
 
-group = 'org.example'
-version = '1.0-SNAPSHOT'
+group = 'org.project'
+version = '1.0.0'
 
 repositories {
     mavenCentral()
 }
 
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
 dependencies {
-    testImplementation platform('org.junit:junit-bom:5.10.0')
-    testImplementation 'org.junit.jupiter:junit-jupiter'
     implementation 'org.mindrot:jbcrypt:0.4'
     implementation 'org.postgresql:postgresql:42.7.3'
 
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
 }
 
 test {
     useJUnitPlatform()
 }
 
-dependencies {
-    implementation 'org.mindrot:jbcrypt:0.4'
+application {
+    mainClass = 'org.project.server.MainTest'
 }

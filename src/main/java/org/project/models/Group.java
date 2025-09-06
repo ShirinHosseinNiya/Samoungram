@@ -1,33 +1,27 @@
 package org.project.models;
 
-
-import java.util.ArrayList;
 import java.util.UUID;
 
-public class Group implements Chats {
+public class Group {
     private UUID groupId;
     private String groupName;
     private UUID groupCreatorId;
-    private ArrayList<UUID> groupMemberIDs;
-    private ArrayList<Message> groupMessageHistory;
 
-    //constructor
-    public Group (UUID groupid, String groupName, UUID groupCreatorId) {
-        this.groupId = UUID.randomUUID();
+    public Group(UUID groupId, String groupName, UUID groupCreatorId) {
+        this.groupId = groupId;
         this.groupName = groupName;
         this.groupCreatorId = groupCreatorId;
-        this.groupMemberIDs = new ArrayList<>();
-        this.groupMessageHistory = new ArrayList<>();
-        this.groupMemberIDs.add(groupCreatorId);            //creator is the first member of the group
     }
 
-    //getters
-    public UUID getGroupId() { return groupId; }
-    public String getGroupName() { return groupName; }
-    public UUID getGroupCreatorId() { return groupCreatorId; }
-    public ArrayList<UUID> getGroupMembersIDs() { return groupMemberIDs; }
-    public ArrayList<Message> getGroupMessageHistory() { return groupMessageHistory; }
+    public UUID getGroupId() {
+        return groupId;
+    }
 
-    //setters
-    public void setGroupName(String groupName) { this.groupName = groupName; }
+    public String getGroupName() {
+        return groupName;
+    }
+
+    public UUID getGroupCreatorId() {
+        return groupCreatorId;
+    }
 }
