@@ -10,66 +10,56 @@ public class ChannelDAO {
         this.conn = conn;
     }
 
-    public void createChannel(UUID channelId, String channelName, UUID ownerId) throws SQLException {
-        String sql = "INSERT INTO channels (channel_id, channel_name, channel_owner_id) VALUES (?, ?, ?)";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setObject(1, channelId);
-            ps.setString(2, channelName);
-            ps.setObject(3, ownerId);
-            ps.executeUpdate();
-        }
-    }
-
-    public UUID getChannelOwnerId(UUID channelId) throws SQLException {
-        String sql = "SELECT channel_owner_id FROM channels WHERE channel_id = ?";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setObject(1, channelId);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return (UUID) rs.getObject(1);
-                return null;
-            }
+    public void addChannel(UUID channelId, String name, UUID ownerId) throws SQLException {
+        String sql = "INSERT INTO channels (id, name, owner_id) VALUES (?, ?, ?)";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, channelId.toString());
+            stmt.setString(2, name);
+            stmt.setString(3, ownerId.toString());
+            stmt.executeUpdate();
         }
     }
 
     public void addMemberToChannel(UUID channelId, UUID memberId) throws SQLException {
-        String sql = "INSERT INTO channel_members (channel_id, member_id) VALUES (?, ?) ON CONFLICT DO NOTHING";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setObject(1, channelId);
-            ps.setObject(2, memberId);
-            ps.executeUpdate();
+        String sql = "INSERT INTO channel_members (channel_id, user_id) VALUES (?, ?)";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, channelId.toString());
+            stmt.setString(2, memberId.toString());
+            stmt.executeUpdate();
         }
     }
 
     public void removeMemberFromChannel(UUID channelId, UUID memberId) throws SQLException {
-        String sql = "DELETE FROM channel_members WHERE channel_id = ? AND member_id = ?";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setObject(1, channelId);
-            ps.setObject(2, memberId);
-            ps.executeUpdate();
+        String sql = "DELETE FROM channel_members WHERE channel_id = ? AND user_id = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, channelId.toString());
+            stmt.setString(2, memberId.toString());
+            stmt.executeUpdate();
         }
     }
 
-    public List<UUID> listMemberIds(UUID channelId) throws SQLException {
-        String sql = "SELECT member_id FROM channel_members WHERE channel_id = ?";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setObject(1, channelId);
-            try (ResultSet rs = ps.executeQuery()) {
-                List<UUID> ids = new ArrayList<>();
-                while (rs.next()) ids.add((UUID) rs.getObject(1));
-                return ids;
+    public UUID getChannelOwnerId(UUID channelId) throws SQLException {
+        String sql = "SELECT owner_id FROM channels WHERE id = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, channelId.toString());
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return UUID.fromString(rs.getString("owner_id"));
             }
+            return null;
         }
     }
 
-    public Map<UUID, String> listMemberProfiles(UUID channelId) throws SQLException {
-        String sql = "SELECT u.id, u.profile_name FROM channel_members cm JOIN users u ON u.id = cm.member_id WHERE cm.channel_id = ?";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setObject(1, channelId);
-            try (ResultSet rs = ps.executeQuery()) {
-                Map<UUID, String> out = new LinkedHashMap<>();
-                while (rs.next()) out.put((UUID) rs.getObject(1), rs.getString(2));
-                return out;
+    public List<UUID> listMembers(UUID channelId) throws SQLException {
+        List<UUID> members = new ArrayList<>();
+        String sql = "SELECT user_id FROM channel_members WHERE channel_id = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, channelId.toString());
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                members.add(UUID.fromString(rs.getString("user_id")));
             }
         }
+        return members;
     }
 }

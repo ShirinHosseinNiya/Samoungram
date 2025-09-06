@@ -1,64 +1,147 @@
 package org.project.server;
 
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.IOException;
-import java.net.Socket;
-import java.util.Map;
-
 import org.project.models.Packet;
 import org.project.models.PacketType;
-import org.project.models.Message;
+
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.Socket;
+import java.sql.SQLException;
+import java.util.UUID;
 
 public class ClientHandler implements Runnable {
-    private Socket socket;
-    private ObjectInputStream in;
+    private final Socket socket;
+    private final Server server;
     private ObjectOutputStream out;
+    private ObjectInputStream in;
+    private UUID userId;
 
-    public ClientHandler(Socket socket) throws IOException {
+    public ClientHandler(Socket socket, Server server) {
         this.socket = socket;
-        this.out = new ObjectOutputStream(socket.getOutputStream());
-        this.in = new ObjectInputStream(socket.getInputStream());
+        this.server = server;
     }
 
+    @Override
     public void run() {
         try {
+            out = new ObjectOutputStream(socket.getOutputStream());
+            in = new ObjectInputStream(socket.getInputStream());
+
             while (true) {
                 Packet packet = (Packet) in.readObject();
-                handle(packet);
+                handlePacket(packet);
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (IOException | ClassNotFoundException e) {
+            System.out.println("Client disconnected: " + socket.getInetAddress());
+        } finally {
+            server.removeOnlineUser(this.userId);
+            try {
+                socket.close();
+            } catch (IOException e) {
+            }
         }
     }
 
-    private void handle(Packet packet) {
-        switch (packet.getType()) {
-            case SEND_MESSAGE:
-                Message msg = (Message) packet.getData();
-                Server.broadcast(new Packet(PacketType.RECEIVE_MESSAGE, msg), this);
-                break;
+    private void handlePacket(Packet packet) {
+        Packet response;
+        try {
+            switch (packet.getType()) {
+                case SIGN_UP:
+                    String[] signUpInfo = packet.getContent().split(";", 3);
+                    UUID newUserId = server.registerUser(signUpInfo[0], signUpInfo[1], signUpInfo[2]);
 
-            case LOGIN:
-                Map<String, String> loginData = (Map<String, String>) packet.getData();
-                String username = loginData.get("username");
-                String password = loginData.get("password");
+                    response = new Packet(PacketType.SUCCESS);
+                    response.setSuccess(true);
+                    response.setContent("Registration successful.");
+                    send(response);
+                    break;
 
-                boolean loginSuccess = username.equals("admin") && password.equals("1234");
-                Packet response = new Packet(PacketType.LOGIN, loginSuccess ? "success" : "fail");
-                send(response);
-                break;
+                case LOGIN:
+                    String[] loginInfo = packet.getContent().split(";", 2);
+                    UUID loggedInUserId = server.authenticateUser(loginInfo[0], loginInfo[1]);
 
-            default:
-                System.out.println("Unhandled packet type: " + packet.getType());
+                    response = new Packet(PacketType.LOGIN);
+                    if (loggedInUserId != null) {
+                        this.userId = loggedInUserId;
+                        server.addOnlineUser(this.userId, this);
+                        response.setSuccess(true);
+                        response.setReceiverId(this.userId);
+                        response.setContent("Login successful!");
+                    } else {
+                        response.setSuccess(false);
+                        response.setErrorMessage("Invalid credentials.");
+                    }
+                    send(response);
+                    break;
+
+                case LOGOUT:
+                    server.removeOnlineUser(packet.getSenderId());
+                    break;
+
+                case SEND_MESSAGE:
+                    server.sendPrivateMessage(packet);
+                    break;
+
+                case SEND_GROUP_MESSAGE:
+                    server.broadcastToGroup(packet.getReceiverId(), packet);
+                    break;
+
+                case SEND_CHANNEL_MESSAGE:
+                    server.broadcastToChannel(packet.getReceiverId(), packet);
+                    break;
+
+                case CREATE_GROUP:
+                    UUID groupId = server.createGroup(packet.getContent(), packet.getSenderId());
+                    response = new Packet(PacketType.SUCCESS);
+                    response.setContent("GROUP_ID:" + groupId);
+                    send(response);
+                    break;
+
+                case ADD_GROUP_MEMBER:
+                    server.addMemberToGroup(packet.getReceiverId(), packet.getSenderId());
+                    send(new Packet(PacketType.SUCCESS));
+                    break;
+
+                case CREATE_CHANNEL:
+                    UUID channelId = server.createChannel(packet.getContent(), packet.getSenderId());
+                    response = new Packet(PacketType.SUCCESS);
+                    response.setContent("CHANNEL_ID:" + channelId);
+                    send(response);
+                    break;
+
+                case ADD_CHANNEL_MEMBER:
+                    server.addMemberToChannel(packet.getReceiverId(), packet.getSenderId());
+                    send(new Packet(PacketType.SUCCESS));
+                    break;
+
+                default:
+                    System.out.println("Unknown packet type received: " + packet.getType());
+            }
+        } catch (SQLException e) {
+            response = new Packet(PacketType.ERROR);
+            response.setSuccess(false);
+            if (e.getMessage().contains("Username already exists.")) {
+                response.setErrorMessage("Username is already taken.");
+            } else {
+                response.setErrorMessage("A database error occurred.");
+            }
+            send(response);
+        } catch (Exception e) {
+            e.printStackTrace();
+            response = new Packet(PacketType.ERROR);
+            response.setSuccess(false);
+            response.setErrorMessage("An unexpected server error occurred.");
+            send(response);
         }
     }
 
     public void send(Packet packet) {
         try {
             out.writeObject(packet);
+            out.flush();
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Failed to send packet to " + (userId != null ? userId : socket.getInetAddress()));
         }
     }
 }

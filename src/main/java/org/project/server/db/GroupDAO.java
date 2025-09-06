@@ -10,70 +10,56 @@ public class GroupDAO {
         this.conn = conn;
     }
 
-    public void createGroup(UUID groupId, String groupName, UUID creatorId) throws SQLException {
-        String sql = "INSERT INTO groups (groupid, groupname, groupcreatorid) VALUES (?, ?, ?)";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setObject(1, groupId);
-            ps.setString(2, groupName);
-            ps.setObject(3, creatorId);
-            ps.executeUpdate();
-        }
-    }
-
-    public void addGroup(UUID groupId, String groupName, UUID creatorId) throws SQLException {
-        createGroup(groupId, groupName, creatorId);
-    }
-
-    public UUID getGroupCreatorId(UUID groupId) throws SQLException {
-        String sql = "SELECT groupcreatorid FROM groups WHERE groupid = ?";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setObject(1, groupId);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return (UUID) rs.getObject(1);
-                return null;
-            }
+    public void addGroup(UUID groupId, String name, UUID creatorId) throws SQLException {
+        String sql = "INSERT INTO groups (id, name, creator_id) VALUES (?, ?, ?)";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, groupId.toString());
+            stmt.setString(2, name);
+            stmt.setString(3, creatorId.toString());
+            stmt.executeUpdate();
         }
     }
 
     public void addMemberToGroup(UUID groupId, UUID memberId) throws SQLException {
-        String sql = "INSERT INTO group_members (group_id, member_id) VALUES (?, ?) ON CONFLICT DO NOTHING";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setObject(1, groupId);
-            ps.setObject(2, memberId);
-            ps.executeUpdate();
+        String sql = "INSERT INTO group_members (group_id, user_id) VALUES (?, ?)";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, groupId.toString());
+            stmt.setString(2, memberId.toString());
+            stmt.executeUpdate();
         }
     }
 
     public void removeMemberFromGroup(UUID groupId, UUID memberId) throws SQLException {
-        String sql = "DELETE FROM group_members WHERE group_id = ? AND member_id = ?";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setObject(1, groupId);
-            ps.setObject(2, memberId);
-            ps.executeUpdate();
+        String sql = "DELETE FROM group_members WHERE group_id = ? AND user_id = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, groupId.toString());
+            stmt.setString(2, memberId.toString());
+            stmt.executeUpdate();
         }
     }
 
-    public List<UUID> listMemberIds(UUID groupId) throws SQLException {
-        String sql = "SELECT member_id FROM group_members WHERE group_id = ?";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setObject(1, groupId);
-            try (ResultSet rs = ps.executeQuery()) {
-                List<UUID> ids = new ArrayList<>();
-                while (rs.next()) ids.add((UUID) rs.getObject(1));
-                return ids;
+    public UUID getGroupCreatorId(UUID groupId) throws SQLException {
+        String sql = "SELECT creator_id FROM groups WHERE id = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, groupId.toString());
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return UUID.fromString(rs.getString("creator_id"));
             }
+            return null;
         }
     }
 
-    public Map<UUID, String> listMemberProfiles(UUID groupId) throws SQLException {
-        String sql = "SELECT u.id, u.profile_name FROM group_members gm JOIN users u ON u.id = gm.member_id WHERE gm.group_id = ?";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setObject(1, groupId);
-            try (ResultSet rs = ps.executeQuery()) {
-                Map<UUID, String> out = new LinkedHashMap<>();
-                while (rs.next()) out.put((UUID) rs.getObject(1), rs.getString(2));
-                return out;
+    public List<UUID> listMembers(UUID groupId) throws SQLException {
+        List<UUID> members = new ArrayList<>();
+        String sql = "SELECT user_id FROM group_members WHERE group_id = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, groupId.toString());
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                members.add(UUID.fromString(rs.getString("user_id")));
             }
         }
+        return members;
     }
 }

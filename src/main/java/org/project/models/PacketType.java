@@ -1,9 +1,20 @@
 package org.project.models;
 
 public enum PacketType {
+    SIGN_UP,
     LOGIN,
-    REGISTER,
+    LOGOUT,
     SEND_MESSAGE,
-    RECEIVE_MESSAGE
+    SEND_GROUP_MESSAGE,
+    SEND_CHANNEL_MESSAGE,
+    CREATE_GROUP,
+    ADD_GROUP_MEMBER,
+    CREATE_CHANNEL,
+    ADD_CHANNEL_MEMBER,
+    VIEW_PROFILE,
+    UPDATE_PROFILE,
+    CHANGE_PASSWORD,
+    FETCH_CHAT_HISTORY,
+    ERROR,
+    SUCCESS
 }
-

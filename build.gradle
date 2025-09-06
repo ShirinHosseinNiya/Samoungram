@@ -1,37 +1,34 @@
 plugins {
     id 'java'
     id 'application'
+    id 'org.openjfx.javafxplugin' version '0.0.13'
 }
 
 group = 'org.project'
-version = '1.0.0'
+version = '1.0-SNAPSHOT'
 
 repositories {
     mavenCentral()
 }
 
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
+application {
+    mainClass = 'org.project.Main'
+}
+
+javafx {
+    version = "17.0.6"
+    modules = [ 'javafx.controls', 'javafx.fxml' ]
 }
 
 dependencies {
     implementation 'org.mindrot:jbcrypt:0.4'
-    implementation 'org.postgresql:postgresql:42.7.3'
 
-    testImplementation platform('org.junit:junit-bom:5.10.2')
-    testImplementation 'org.junit.jupiter:junit-jupiter'
-}
+    runtimeOnly 'org.postgresql:postgresql:42.7.3'
 
-tasks.withType(JavaCompile).configureEach {
-    options.encoding = 'UTF-8'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
 }
 
 test {
     useJUnitPlatform()
-}
-
-application {
-    mainClass = 'org.project.server.MainTest'
 }

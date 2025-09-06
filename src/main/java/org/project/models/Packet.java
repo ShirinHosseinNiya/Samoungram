@@ -1,15 +1,21 @@
 package org.project.models;
 
-
 import java.io.Serializable;
+import java.sql.Timestamp;
+import java.util.UUID;
 
 public class Packet implements Serializable {
     private PacketType type;
-    private Object data;
+    private UUID senderId;
+    private UUID receiverId; // می‌تونه user/group/channel باشه
+    private String content;
+    private Timestamp timestamp;
+    private boolean success;
+    private String errorMessage;
 
-    public Packet(PacketType type, Object data) {
+    public Packet(PacketType type) {
         this.type = type;
-        this.data = data;
+        this.timestamp = new Timestamp(System.currentTimeMillis());
     }
 
     public PacketType getType() {
@@ -20,20 +26,51 @@ public class Packet implements Serializable {
         this.type = type;
     }
 
-    public Object getData() {
-        return data;
+    public UUID getSenderId() {
+        return senderId;
     }
 
-    public void setData(Object data) {
-        this.data = data;
+    public void setSenderId(UUID senderId) {
+        this.senderId = senderId;
     }
 
-    @Override
-    public String toString() {
-        return "Packet{" +
-                "type=" + type +
-                ", data=" + data +
-                '}';
+    public UUID getReceiverId() {
+        return receiverId;
+    }
+
+    public void setReceiverId(UUID receiverId) {
+        this.receiverId = receiverId;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
+    }
+
+    public Timestamp getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(Timestamp timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    public boolean isSuccess() {
+        return success;
+    }
+
+    public void setSuccess(boolean success) {
+        this.success = success;
+    }
+
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+
+    public void setErrorMessage(String errorMessage) {
+        this.errorMessage = errorMessage;
     }
 }
-

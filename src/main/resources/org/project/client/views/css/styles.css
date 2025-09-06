@@ -1,0 +1,55 @@
+.root {
+    -fx-background-color: #FAF0E6;
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.app-title {
+    -fx-font-size: 32px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #722F37;
+}
+
+.text-field {
+    -fx-font-size: 14px;
+    -fx-padding: 10px;
+    -fx-border-color: #722F37;
+    -fx-border-radius: 5px;
+    -fx-background-radius: 5px;
+    -fx-background-color: #ffffff;
+}
+
+.text-field:focused {
+    -fx-border-color: #5C252C;
+}
+
+.action-button {
+    -fx-background-color: #722F37;
+    -fx-text-fill: #FAF0E6;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-padding: 10px 20px;
+    -fx-background-radius: 5px;
+    -fx-cursor: hand;
+}
+
+.action-button:hover {
+    -fx-background-color: #5C252C;
+}
+
+.status-label {
+    -fx-text-fill: #722F37;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-padding: 5px 0;
+}
+
+.toggle-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #722F37;
+    -fx-font-size: 12px;
+    -fx-cursor: hand;
+}
+
+.toggle-button:hover {
+    -fx-underline: true;
+}

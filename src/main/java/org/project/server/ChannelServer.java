@@ -1,34 +1,20 @@
 package org.project.server;
 
 import org.project.server.db.ChannelDAO;
-import org.project.server.db.DBConnection;
-
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 public class ChannelServer {
-    private final Connection conn;
     private final ChannelDAO channelDAO;
 
-    public ChannelServer() throws SQLException {
-        this.conn = DBConnection.getConnection();
-        this.channelDAO = new ChannelDAO(conn);
-    }
-
-    public ChannelServer(Connection conn) {
-        this.conn = conn;
+    public ChannelServer(Connection conn) throws SQLException {
         this.channelDAO = new ChannelDAO(conn);
     }
 
     public void createChannel(UUID channelId, String channelName, UUID ownerId) throws SQLException {
-        channelDAO.createChannel(channelId, channelName, ownerId);
-    }
-
-    public UUID getChannelOwnerId(UUID channelId) throws SQLException {
-        return channelDAO.getChannelOwnerId(channelId);
+        channelDAO.addChannel(channelId, channelName, ownerId);
     }
 
     public void addMember(UUID channelId, UUID memberId) throws SQLException {
@@ -39,11 +25,11 @@ public class ChannelServer {
         channelDAO.removeMemberFromChannel(channelId, memberId);
     }
 
-    public List<UUID> listMemberIds(UUID channelId) throws SQLException {
-        return channelDAO.listMemberIds(channelId);
+    public UUID getChannelOwnerId(UUID channelId) throws SQLException {
+        return channelDAO.getChannelOwnerId(channelId);
     }
 
-    public Map<UUID, String> listMemberProfiles(UUID channelId) throws SQLException {
-        return channelDAO.listMemberProfiles(channelId);
+    public List<UUID> listMembers(UUID channelId) throws SQLException {
+        return channelDAO.listMembers(channelId);
     }
 }

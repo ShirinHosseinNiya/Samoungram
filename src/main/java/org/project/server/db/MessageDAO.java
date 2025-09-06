@@ -12,6 +12,7 @@ public class MessageDAO {
         this.conn = conn;
     }
 
+    // پیام خصوصی یا عمومی (هر receiver_is می‌تونه user_id یا group_id یا channel_id باشه)
     public void addMessage(Message message) throws SQLException {
         String sql = "INSERT INTO message_history (message_id, sender_id, receiver_is, content, \"timestamp\", status) VALUES (?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -38,6 +39,14 @@ public class MessageDAO {
         }
     }
 
+    public void saveGroupMessage(UUID messageId, UUID senderId, UUID groupId, String content, Timestamp ts, String status) throws SQLException {
+        saveMessage(messageId, senderId, groupId, content, ts, status);
+    }
+
+    public void saveChannelMessage(UUID messageId, UUID senderId, UUID channelId, String content, Timestamp ts, String status) throws SQLException {
+        saveMessage(messageId, senderId, channelId, content, ts, status);
+    }
+
     public List<String> getMessagesBetween(UUID user1, UUID user2) throws SQLException {
         String sql = "SELECT content FROM message_history WHERE (sender_id = ? AND receiver_is = ?) OR (sender_id = ? AND receiver_is = ?) ORDER BY \"timestamp\"";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -49,6 +58,30 @@ public class MessageDAO {
                 List<String> messages = new ArrayList<>();
                 while (rs.next()) messages.add(rs.getString(1));
                 return messages;
+            }
+        }
+    }
+
+    public List<String> getGroupMessages(UUID groupId) throws SQLException {
+        String sql = "SELECT content FROM message_history WHERE receiver_is = ? ORDER BY \"timestamp\"";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, groupId);
+            try (ResultSet rs = ps.executeQuery()) {
+                List<String> msgs = new ArrayList<>();
+                while (rs.next()) msgs.add(rs.getString(1));
+                return msgs;
+            }
+        }
+    }
+
+    public List<String> getChannelMessages(UUID channelId) throws SQLException {
+        String sql = "SELECT content FROM message_history WHERE receiver_is = ? ORDER BY \"timestamp\"";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, channelId);
+            try (ResultSet rs = ps.executeQuery()) {
+                List<String> msgs = new ArrayList<>();
+                while (rs.next()) msgs.add(rs.getString(1));
+                return msgs;
             }
         }
     }
