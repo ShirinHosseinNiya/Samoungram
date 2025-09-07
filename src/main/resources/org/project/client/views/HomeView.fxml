@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<BorderPane fx:controller="org.project.client.views.HomeController"
+            xmlns:fx="http://javafx.com/fxml" prefWidth="1000" prefHeight="640">
+    <!-- chats sidebar -->
+    <left>
+        <VBox spacing="10" styleClass="sidebar">
+            <children>
+                <TextField fx:id="chatSearchField" promptText="search"/>
+                <ListView fx:id="chatListView" prefWidth="280"/>
+            </children>
+            <padding><Insets top="10" right="10" bottom="10" left="10"/></
+                    padding>
+        </VBox>
+    </left>
+    <!-- chats main box -->
+    <center>
+        <BorderPane>
+            <top>
+                <HBox spacing="10" styleClass="chat-header">
+                    <children>
+                        <Label fx:id="chatTitleLabel" text="choose a chat."/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Label fx:id="typingLabel" text=""/>
+                    </children>
+                    <padding><Insets top="8" right="12" bottom="8" left="12"/></
+                            padding>
+                </HBox>
+            </top>
+            <center>
+                <ListView fx:id="messageListView"/>
+            </center>
+            <bottom>
+                <HBox spacing="8" styleClass="composer">
+                    <children>
+                        <TextArea fx:id="messageField" promptText="Message"
+                                  wrapText="true" prefRowCount="1"/>
+                        <Button fx:id="sendButton" text="Send"
+                                onAction="#onSend"/>
+                    </children>
+                    <padding><Insets top="8" right="8" bottom="8" left="8"/></
+                            padding>
+                </HBox>
+            </bottom>
+        </BorderPane>
+    </center>
+    <stylesheets>
+        <URL value="@/org/project/client/views/css/styles.css"/>
+    </stylesheets>
+</BorderPane>

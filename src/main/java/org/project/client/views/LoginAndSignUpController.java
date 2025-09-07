@@ -4,13 +4,19 @@ import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.stage.Stage;
 import org.project.client.NetworkClient;
 import org.project.models.Packet;
 import org.project.models.PacketType;
+
+import java.io.IOException;
 
 public class LoginAndSignUpController {
 
@@ -86,10 +92,28 @@ public class LoginAndSignUpController {
 
                 Packet response = networkClient.getReceivedPacket();
 
+//                System.out.println("DEBUG >> Received packet type: " + response.getType() + " | content: " + response.getContent());
+
                 Platform.runLater(() -> {
                     if (response != null && response.isSuccess()) {
                         statusLabel.setText("Login Successful!");
-                        // TODO: Close login window and open main chat window
+
+                        try {
+                            FXMLLoader loader = new FXMLLoader(getClass().getResource("/org/project/client/views/HomeView.fxml"));
+                            Parent root = loader.load();
+
+                            HomeController homeController = loader.getController();
+                            // فرض: response.getSenderId() یا چیزی مشابه userId برمی‌گردونه
+                            homeController.initWith(networkClient, response.getSenderId());
+
+                            Stage stage = (Stage) loginButton.getScene().getWindow();
+                            stage.setScene(new Scene(root));
+                            stage.setTitle("SamoonGram");
+                            stage.show();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                            statusLabel.setText("Failed to load Home view.");
+                        }
                     } else {
                         statusLabel.setText(response != null ? response.getErrorMessage() : "Login failed: No response.");
                         setButtonsDisabled(false);

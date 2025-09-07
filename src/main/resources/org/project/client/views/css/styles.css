@@ -53,3 +53,25 @@
 .toggle-button:hover {
     -fx-underline: true;
 }
+
+/* سایدبار */
+.sidebar { -fx-background-color: #101821; }
+.sidebar .text-field { -fx-background-color: #0c141c; -fx-text-fill: #cdd6df; }
+.chat-row { -fx-padding: 10 8; }
+.chat-name { -fx-font-weight: bold; -fx-text-fill: #e8eef6; }
+.chat-last { -fx-text-fill: #9bb1c9; }
+.chat-time { -fx-text-fill: #7f96ad; -fx-font-size: 11px; }
+.avatar { -fx-fill: #3b82f6; }
+.unread-badge { -fx-background-color: #22c55e; -fx-text-fill: white; -fx-padding: 2 6; -fx-background-radius: 10; }
+
+
+/* هدر گفتگو */
+.chat-header { -fx-background-color: #0b1620; -fx-alignment: CENTER_LEFT; }
+
+
+/* ناحیه پیام‌ها */
+.bubble { -fx-background-color: #1f2a37; -fx-background-radius: 16; }
+.bubble.sent { -fx-background-color: #2b3c52; }
+.bubble.received { -fx-background-color: #1f2a37; }
+.msg-time { -fx-font-size: 10px; -fx-text-fill: #9bb1c9; }
+.msg-time:focused { -fx-text-fill: #9bb1c9; }
