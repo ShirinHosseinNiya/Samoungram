@@ -92,11 +92,23 @@ public class ClientHandler implements Runnable {
                 case SEARCH_USER:
                     server.searchAndSendResults(packet);
                     break;
+                case SEARCH_CHANNELS:
+                    server.searchAndSendChannels(packet);
+                    break;
                 case ADD_MEMBER:
                     server.addMemberToChat(packet);
                     break;
                 case FETCH_MEMBERS:
                     server.sendMemberList(packet);
+                    break;
+                case KICK_MEMBER:
+                    server.kickMember(packet);
+                    break;
+                case LEAVE_CHAT:
+                    server.leaveChat(packet);
+                    break;
+                case RENAME_CHAT:
+                    server.renameChat(packet);
                     break;
                 default:
                     System.out.println("Unknown packet type received: " + packet.getType());

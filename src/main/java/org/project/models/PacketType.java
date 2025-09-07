@@ -29,9 +29,11 @@ public enum PacketType {
     MARK_AS_READ,
     ERROR,
     SUCCESS,
-
-    // انواع جدید اضافه شده
     ADD_MEMBER,
     FETCH_MEMBERS,
-    MEMBERS_LIST
+    MEMBERS_LIST,
+    SEARCH_CHANNELS,
+    KICK_MEMBER,
+    LEAVE_CHAT,
+    RENAME_CHAT
 }

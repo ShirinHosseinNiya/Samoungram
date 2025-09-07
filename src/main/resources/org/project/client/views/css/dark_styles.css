@@ -277,3 +277,17 @@
     -fx-text-fill: #7289DA;
     -fx-padding: 0 0 2px 0;
 }
+
+.header-button-leave {
+    -fx-background-color: #F04747;
+    -fx-text-fill: white;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 8px;
+    -fx-padding: 6 12;
+    -fx-cursor: hand;
+    -fx-margin-left: 10;
+}
+.header-button-leave:hover {
+    -fx-background-color: #D32F2F;
+}

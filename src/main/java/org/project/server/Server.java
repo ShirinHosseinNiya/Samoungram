@@ -2,7 +2,13 @@ package org.project.server;
 
 import com.google.gson.Gson;
 import org.project.client.views.ChatItemViewModel;
-import org.project.models.*;
+import org.project.models.Channel;
+import org.project.models.Group;
+import org.project.models.MemberViewModel;
+import org.project.models.Message;
+import org.project.models.Packet;
+import org.project.models.PacketType;
+import org.project.models.User;
 import org.project.server.db.*;
 
 import java.net.ServerSocket;
@@ -24,6 +30,7 @@ public class Server {
     private final ChatDAO chatDAO;
     private final GroupDAO groupDAO;
     private final ChannelDAO channelDAO;
+    private final ReadMarkerDAO readMarkerDAO;
     private final Connection conn;
     private final Gson gson = new Gson();
 
@@ -35,6 +42,7 @@ public class Server {
         this.chatDAO = new ChatDAO(conn);
         this.groupDAO = new GroupDAO(conn);
         this.channelDAO = new ChannelDAO(conn);
+        this.readMarkerDAO = new ReadMarkerDAO(conn);
     }
 
     public Connection getConnection() {
@@ -69,8 +77,13 @@ public class Server {
         }
     }
 
-    public void markMessagesAsRead(UUID readerId, UUID senderId) throws SQLException {
-        messageDAO.markMessagesAsRead(readerId, senderId);
+    public void markMessagesAsRead(UUID readerId, UUID chatId) throws SQLException {
+        boolean isUser = userDAO.findUserById(chatId);
+        if (isUser) {
+            messageDAO.markMessagesAsRead(readerId, chatId);
+        } else {
+            readMarkerDAO.updateLastReadTimestamp(readerId, chatId);
+        }
     }
 
     public UUID authenticateUser(String username, String password) throws SQLException { return userDAO.login(username, password); }
@@ -80,36 +93,56 @@ public class Server {
         UUID senderId = packet.getSenderId();
         UUID receiverId = packet.getReceiverId();
         createPrivateChatIfNotExist(senderId, receiverId);
-        String senderProfileName = userDAO.getProfileNameById(senderId); // Get sender's profile name
+        String senderProfileName = userDAO.getProfileNameById(senderId);
         Message message = new Message(UUID.randomUUID(), senderId, receiverId, packet.getContent(), packet.getTimestamp(), "SENT", senderProfileName);
         messageDAO.addMessage(message);
+
         ClientHandler receiverHandler = onlineUsers.get(receiverId);
         if (receiverHandler != null) {
             Packet newMsgPacket = new Packet(PacketType.NEW_MESSAGE);
             newMsgPacket.setContent(gson.toJson(message));
             receiverHandler.send(newMsgPacket);
+
+            Packet refreshPacket = new Packet(PacketType.FETCH_CHATS);
+            refreshPacket.setSenderId(receiverId);
+            sendChatsList(refreshPacket);
         }
     }
 
     public void sendGroupOrChannelMessage(Packet packet) throws SQLException {
-        String senderProfileName = userDAO.getProfileNameById(packet.getSenderId());
-        Message message = new Message(UUID.randomUUID(), packet.getSenderId(), packet.getReceiverId(), packet.getContent(), packet.getTimestamp(), "SENT", senderProfileName);
+        UUID chatId = packet.getReceiverId();
+        UUID senderId = packet.getSenderId();
+
+        Channel channel = channelDAO.findChannelById(chatId);
+        if (channel != null) {
+            if (!channel.getChannelOwnerId().equals(senderId)) {
+                return;
+            }
+        }
+
+        String senderProfileName = userDAO.getProfileNameById(senderId);
+        Message message = new Message(UUID.randomUUID(), senderId, chatId, packet.getContent(), packet.getTimestamp(), "SENT", senderProfileName);
         messageDAO.addMessage(message);
 
         List<UUID> memberIds;
-        if (groupDAO.findGroupById(packet.getReceiverId()) != null) {
-            memberIds = groupDAO.listMembers(packet.getReceiverId());
+        if (channel != null) {
+            memberIds = channelDAO.listMembers(chatId);
         } else {
-            memberIds = channelDAO.listMembers(packet.getReceiverId());
+            memberIds = groupDAO.listMembers(chatId);
         }
 
         Packet newMsgPacket = new Packet(PacketType.NEW_MESSAGE);
         newMsgPacket.setContent(gson.toJson(message));
+
         for (UUID memberId : memberIds) {
-            if (!memberId.equals(packet.getSenderId())) {
+            if (!memberId.equals(senderId)) {
                 ClientHandler handler = onlineUsers.get(memberId);
                 if (handler != null) {
                     handler.send(newMsgPacket);
+
+                    Packet refreshPacket = new Packet(PacketType.FETCH_CHATS);
+                    refreshPacket.setSenderId(memberId);
+                    sendChatsList(refreshPacket);
                 }
             }
         }
@@ -134,36 +167,60 @@ public class Server {
     }
 
     public void addMemberToChat(Packet packet) throws SQLException {
+        UUID requesterId = packet.getSenderId();
         String[] parts = packet.getContent().split(";", 2);
         UUID chatId = UUID.fromString(parts[0]);
-        String usernameToAdd = parts[1];
+        String usernameOrId = parts[1];
 
-        UUID userIdToAdd = userDAO.findUserIdByUsername(usernameToAdd);
-        if (userIdToAdd == null) {
-            System.out.println("User not found: " + usernameToAdd);
+        Channel channel = channelDAO.findChannelById(chatId);
+        if (channel != null && !channel.getChannelOwnerId().equals(requesterId)) {
             return;
         }
 
-        if (groupDAO.findGroupById(chatId) != null) {
-            groupDAO.addMemberToGroup(chatId, userIdToAdd);
-        } else if (channelDAO.findChannelById(chatId) != null) {
+        UUID userIdToAdd;
+        try {
+            userIdToAdd = UUID.fromString(usernameOrId);
+        } catch (IllegalArgumentException e) {
+            userIdToAdd = userDAO.findUserIdByUsername(usernameOrId);
+        }
+
+        if (userIdToAdd == null) {
+            return;
+        }
+
+        if (channel != null) {
             channelDAO.addMemberToChannel(chatId, userIdToAdd);
+        } else if (groupDAO.findGroupById(chatId) != null) {
+            groupDAO.addMemberToGroup(chatId, userIdToAdd);
+        }
+
+        ClientHandler newlyAddedMemberHandler = onlineUsers.get(userIdToAdd);
+        if (newlyAddedMemberHandler != null) {
+            Packet refreshPacket = new Packet(PacketType.FETCH_CHATS);
+            refreshPacket.setSenderId(userIdToAdd);
+            sendChatsList(refreshPacket);
         }
     }
 
     public void sendMemberList(Packet packet) throws SQLException {
         UUID chatId = packet.getReceiverId();
-        List<MemberViewModel> members = new ArrayList<>();
+        UUID requesterId = packet.getSenderId();
 
+        Channel channel = channelDAO.findChannelById(chatId);
+        if (channel != null && !channel.getChannelOwnerId().equals(requesterId)) {
+            return;
+        }
+
+        List<MemberViewModel> members = new ArrayList<>();
         List<UUID> memberIds;
         UUID creatorId = null;
 
-        if (groupDAO.findGroupById(chatId) != null) {
+        if (channel != null) {
+            memberIds = channelDAO.listMembers(chatId);
+            creatorId = channel.getChannelOwnerId();
+        } else {
             memberIds = groupDAO.listMembers(chatId);
             creatorId = groupDAO.getGroupCreatorId(chatId);
-        } else {
-            memberIds = channelDAO.listMembers(chatId);
-            creatorId = channelDAO.getChannelOwnerId(chatId);
         }
 
         for (UUID memberId : memberIds) {
@@ -176,7 +233,85 @@ public class Server {
 
         Packet response = new Packet(PacketType.MEMBERS_LIST);
         response.setContent(gson.toJson(members));
-        onlineUsers.get(packet.getSenderId()).send(response);
+        onlineUsers.get(requesterId).send(response);
+    }
+
+    public void kickMember(Packet packet) throws SQLException {
+        UUID kickerId = packet.getSenderId();
+        String[] parts = packet.getContent().split(";", 2);
+        UUID chatId = UUID.fromString(parts[0]);
+        UUID memberToKickId = UUID.fromString(parts[1]);
+
+        UUID ownerId = null;
+        Channel channel = channelDAO.findChannelById(chatId);
+        if (channel != null) {
+            ownerId = channel.getChannelOwnerId();
+        } else {
+            ownerId = groupDAO.getGroupCreatorId(chatId);
+        }
+
+        if (ownerId != null && ownerId.equals(kickerId) && !kickerId.equals(memberToKickId)) {
+            if (channel != null) {
+                channelDAO.removeMemberFromChannel(chatId, memberToKickId);
+            } else {
+                groupDAO.removeMemberFromGroup(chatId, memberToKickId);
+            }
+        }
+    }
+
+    public void leaveChat(Packet packet) throws SQLException {
+        UUID memberId = packet.getSenderId();
+        UUID chatId = UUID.fromString(packet.getContent());
+
+        if (groupDAO.findGroupById(chatId) != null) {
+            groupDAO.removeMemberFromGroup(chatId, memberId);
+        } else if (channelDAO.findChannelById(chatId) != null) {
+            channelDAO.removeMemberFromChannel(chatId, memberId);
+        }
+    }
+
+    public void renameChat(Packet packet) throws SQLException {
+        UUID requesterId = packet.getSenderId();
+        String[] parts = packet.getContent().split(";", 2);
+        UUID chatId = UUID.fromString(parts[0]);
+        String newName = parts[1];
+
+        List<UUID> membersToNotify = new ArrayList<>();
+
+        Channel channel = channelDAO.findChannelById(chatId);
+        if (channel != null) {
+            if (channel.getChannelOwnerId().equals(requesterId)) {
+                channelDAO.updateChannelName(chatId, newName);
+                membersToNotify = channelDAO.listMembers(chatId);
+            }
+        } else {
+            Group group = groupDAO.findGroupById(chatId);
+            if (group != null && group.getGroupCreatorId().equals(requesterId)) {
+                groupDAO.updateGroupName(chatId, newName);
+                membersToNotify = groupDAO.listMembers(chatId);
+            }
+        }
+
+        for (UUID memberId : membersToNotify) {
+            ClientHandler handler = onlineUsers.get(memberId);
+            if (handler != null) {
+                Packet refreshPacket = new Packet(PacketType.FETCH_CHATS);
+                refreshPacket.setSenderId(memberId);
+                sendChatsList(refreshPacket);
+            }
+        }
+    }
+
+    public void searchAndSendChannels(Packet packet) {
+        try {
+            List<Channel> channels = channelDAO.searchChannelsByName(packet.getContent());
+            String jsonResults = gson.toJson(channels);
+            Packet response = new Packet(PacketType.SEARCH_RESULTS);
+            response.setContent(jsonResults);
+            onlineUsers.get(packet.getSenderId()).send(response);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     public void searchAndSendResults(Packet packet) {
@@ -211,7 +346,6 @@ public class Server {
             } else {
                 history = messageDAO.getHistoryForGroupOrChannel(receivedId);
             }
-            // Ensure senderProfileName is populated for messages
             for (Message msg : history) {
                 if (msg.getSenderProfileName() == null) {
                     msg.setSenderProfileName(userDAO.getProfileNameById(msg.getSenderId()));

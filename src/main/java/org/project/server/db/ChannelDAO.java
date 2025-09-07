@@ -11,6 +11,23 @@ public class ChannelDAO {
         this.conn = conn;
     }
 
+    public List<Channel> searchChannelsByName(String query) throws SQLException {
+        List<Channel> channels = new ArrayList<>();
+        String sql = "SELECT * FROM channels WHERE channel_name ILIKE ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, "%" + query + "%");
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                channels.add(new Channel(
+                        (UUID) rs.getObject("channel_id"),
+                        rs.getString("channel_name"),
+                        (UUID) rs.getObject("channel_owner_id")
+                ));
+            }
+        }
+        return channels;
+    }
+
     public void addChannel(UUID channelId, String name, UUID ownerId) throws SQLException {
         String sql = "INSERT INTO channels (channel_id, channel_name, channel_owner_id) VALUES (?, ?, ?)";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -78,5 +95,14 @@ public class ChannelDAO {
             }
         }
         return members;
+    }
+
+    public void updateChannelName(UUID channelId, String newName) throws SQLException {
+        String sql = "UPDATE channels SET channel_name = ? WHERE channel_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, newName);
+            ps.setObject(2, channelId);
+            ps.executeUpdate();
+        }
     }
 }

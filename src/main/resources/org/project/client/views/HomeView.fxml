@@ -46,8 +46,10 @@
                     <children>
                         <Label fx:id="chatTitleLabel" styleClass="chat-title" text="Select a chat"/>
                         <Region HBox.hgrow="ALWAYS"/>
+                        <Button fx:id="renameChatButton" text="Rename" styleClass="header-button" onAction="#onRenameChat"/>
                         <Button fx:id="addMemberButton" text="Add Member" styleClass="header-button" onAction="#onAddMember"/>
                         <Button fx:id="viewMembersButton" text="View Members" styleClass="header-button" onAction="#onViewMembers"/>
+                        <Button fx:id="leaveChatButton" text="Leave" styleClass="header-button-leave" onAction="#onLeaveChat"/>
                         <Label fx:id="typingLabel" styleClass="typing-label" text=""/>
                     </children>
                 </HBox>
@@ -56,7 +58,7 @@
                 <ListView fx:id="messageListView" styleClass="message-list"/>
             </center>
             <bottom>
-                <HBox styleClass="composer">
+                <HBox fx:id="composerHBox" styleClass="composer">
                     <children>
                         <TextArea fx:id="messageField" promptText="Message..." wrapText="true"
                                   prefRowCount="1" styleClass="message-input" HBox.hgrow="ALWAYS"/>

@@ -16,6 +16,7 @@ import java.util.function.Supplier;
 
 class MessageListCell extends ListCell<Message> {
     private final Supplier<UUID> myIdProvider;
+    private final Supplier<ChatItemViewModel.ChatType> chatTypeProvider;
     private final HBox graphic = new HBox();
     private final VBox bubble = new VBox();
     private final Label senderName = new Label();
@@ -24,8 +25,9 @@ class MessageListCell extends ListCell<Message> {
 
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault());
 
-    MessageListCell(Supplier<UUID> myIdProvider) {
+    MessageListCell(Supplier<UUID> myIdProvider, Supplier<ChatItemViewModel.ChatType> chatTypeProvider) {
         this.myIdProvider = myIdProvider;
+        this.chatTypeProvider = chatTypeProvider;
 
         senderName.getStyleClass().add("message-sender-name");
         text.setWrapText(true);
@@ -35,7 +37,6 @@ class MessageListCell extends ListCell<Message> {
         bubble.setMaxWidth(480);
         graphic.getChildren().add(bubble);
 
-        // Ensure the cell has no default text or graphic to avoid artifacts
         setText(null);
     }
 
@@ -49,11 +50,12 @@ class MessageListCell extends ListCell<Message> {
         }
 
         text.setText(m.getContent());
-        time.setText(formatTime(m.getTimestamp() == null ? 0L : m.getTimestamp().getTime()));
-
         boolean sentByMe = m.getSenderId() != null && m.getSenderId().equals(myIdProvider.get());
 
-        // Clear previous children and styles
+        String statusIcon = sentByMe ? statusToIcon(m.getStatus()) : "";
+        String timeText = formatTime(m.getTimestamp() == null ? 0L : m.getTimestamp().getTime());
+        time.setText(timeText + (statusIcon.isEmpty() ? "" : " " + statusIcon));
+
         bubble.getChildren().clear();
         bubble.getStyleClass().removeAll("sent", "received");
 
@@ -64,8 +66,9 @@ class MessageListCell extends ListCell<Message> {
         } else {
             graphic.setAlignment(Pos.CENTER_LEFT);
             bubble.getStyleClass().add("received");
-            // Only add sender name if it exists (for groups/channels)
-            if (m.getSenderProfileName() != null) {
+
+            ChatItemViewModel.ChatType currentChatType = chatTypeProvider.get();
+            if (currentChatType != ChatItemViewModel.ChatType.CHANNEL && m.getSenderProfileName() != null) {
                 senderName.setText(m.getSenderProfileName());
                 bubble.getChildren().add(senderName);
             }
@@ -73,6 +76,16 @@ class MessageListCell extends ListCell<Message> {
         }
 
         setGraphic(graphic);
+    }
+
+    private String statusToIcon(String status) {
+        if (status == null) return "";
+        MessageStatus st = MessageStatus.fromDb(status);
+        return switch (st) {
+            case SENT -> "✓";
+            case DELIVERED -> "✓✓";
+            case READ -> "✓✓"; //  برای رنگی کردن تیک دوم باید در CSS استایل جداگانه تعریف کرد
+        };
     }
 
     private String formatTime(long epochMillis) {

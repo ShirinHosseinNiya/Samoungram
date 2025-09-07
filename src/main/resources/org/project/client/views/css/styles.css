@@ -317,6 +317,20 @@
 .message-sender-name {
     -fx-font-size: 12px;
     -fx-font-weight: bold;
-    -fx-text-fill: #722F37; /* رنگ قرمز برای نام فرستنده */
+    -fx-text-fill: #722F37;
     -fx-padding: 0 0 2px 0;
+}
+
+.header-button-leave {
+    -fx-background-color: #D32F2F;
+    -fx-text-fill: white;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 8px;
+    -fx-padding: 6 12;
+    -fx-cursor: hand;
+    -fx-margin-left: 10;
+}
+.header-button-leave:hover {
+    -fx-background-color: #B71C1C;
 }

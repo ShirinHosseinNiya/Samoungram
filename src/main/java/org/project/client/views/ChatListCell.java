@@ -8,6 +8,10 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Circle;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Set;
 import java.util.UUID;
 
@@ -21,6 +25,7 @@ class ChatListCell extends ListCell<ChatItemViewModel> {
     private final Circle onlineIndicator = new Circle(5);
     private final Label chatTypeLabel = new Label();
     private final Set<UUID> onlineUsers;
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
 
     ChatListCell(Set<UUID> onlineUsers) {
         this.onlineUsers = onlineUsers;
@@ -92,9 +97,7 @@ class ChatListCell extends ListCell<ChatItemViewModel> {
 
     private String formatTime(long epochMillis) {
         if (epochMillis <= 0) return "";
-        java.time.LocalDateTime dt = java.time.Instant.ofEpochMilli(epochMillis)
-                .atZone(java.time.ZoneId.systemDefault()).toLocalDateTime();
-        java.time.format.DateTimeFormatter f = java.time.format.DateTimeFormatter.ofPattern("HH:mm");
-        return f.format(dt);
+        LocalDateTime dt = LocalDateTime.ofInstant(Instant.ofEpochMilli(epochMillis), ZoneId.systemDefault());
+        return TIME_FORMATTER.format(dt);
     }
 }

@@ -15,6 +15,10 @@ public class MemberViewModel implements Serializable {
         this.isCreator = isCreator;
     }
 
+    public UUID getUserId() { // این متد اضافه شده است
+        return userId;
+    }
+
     public String getProfileName() {
         return profileName;
     }

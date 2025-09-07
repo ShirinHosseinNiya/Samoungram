@@ -79,4 +79,13 @@ public class GroupDAO {
         }
         return members;
     }
+
+    public void updateGroupName(UUID groupId, String newName) throws SQLException {
+        String sql = "UPDATE groups SET groupname = ? WHERE groupid = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, newName);
+            ps.setObject(2, groupId);
+            ps.executeUpdate();
+        }
+    }
 }
