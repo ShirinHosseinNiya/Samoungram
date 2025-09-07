@@ -36,14 +36,7 @@ public class MessageDAO {
             ps.setObject(4, user1);
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
-                history.add(new Message(
-                        (UUID) rs.getObject("message_id"),
-                        (UUID) rs.getObject("sender_id"),
-                        (UUID) rs.getObject("receiver_is"),
-                        rs.getString("content"),
-                        rs.getTimestamp("timestamp"),
-                        rs.getString("status")
-                ));
+                history.add(new Message((UUID) rs.getObject("message_id"), (UUID) rs.getObject("sender_id"), (UUID) rs.getObject("receiver_is"), rs.getString("content"), rs.getTimestamp("timestamp"), rs.getString("status")));
             }
         }
         return history;
@@ -56,16 +49,18 @@ public class MessageDAO {
             ps.setObject(1, chatId);
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
-                history.add(new Message(
-                        (UUID) rs.getObject("message_id"),
-                        (UUID) rs.getObject("sender_id"),
-                        (UUID) rs.getObject("receiver_is"),
-                        rs.getString("content"),
-                        rs.getTimestamp("timestamp"),
-                        rs.getString("status")
-                ));
+                history.add(new Message((UUID) rs.getObject("message_id"), (UUID) rs.getObject("sender_id"), (UUID) rs.getObject("receiver_is"), rs.getString("content"), rs.getTimestamp("timestamp"), rs.getString("status")));
             }
         }
         return history;
+    }
+
+    public void markMessagesAsRead(UUID readerId, UUID chatId) throws SQLException {
+        String sql = "UPDATE message_history SET status = 'READ' WHERE receiver_is = ? AND sender_id = ? AND status <> 'READ'";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, readerId);
+            ps.setObject(2, chatId);
+            ps.executeUpdate();
+        }
     }
 }

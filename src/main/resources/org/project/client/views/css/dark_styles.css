@@ -1,0 +1,156 @@
+/* === GENERAL STYLES (MODERN DARK) === */
+.root {
+    -fx-background-color: #2F3136;
+    -fx-font-family: "Segoe UI", Helvetica, Arial, sans-serif;
+}
+
+/* === HOME PAGE STYLES (MODERN DARK) === */
+.sidebar {
+    -fx-background-color: #36393F;
+    -fx-padding: 0;
+}
+
+.sidebar-header {
+    -fx-padding: 15 20;
+    -fx-border-color: transparent transparent #202225 transparent;
+    -fx-border-width: 1.5;
+}
+
+.sidebar-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #FFFFFF;
+}
+
+.search-field, .message-input {
+    -fx-background-color: #202225;
+    -fx-background-radius: 18;
+    -fx-border-radius: 18;
+    -fx-border-color: transparent;
+    -fx-font-size: 13px;
+    -fx-prompt-text-fill: #72767D;
+    -fx-padding: 8 15;
+    -fx-text-fill: #DCDDDE;
+}
+.search-field {
+    margin: 0 15px;
+}
+.search-field:focused, .message-input:focused {
+    -fx-border-color: #7289DA;
+    -fx-border-width: 1.5;
+}
+
+.chat-list-view {
+    -fx-background-color: transparent;
+    -fx-padding: 0 10;
+}
+.chat-list-view .list-cell {
+    -fx-background-color: transparent;
+    -fx-padding: 3 0;
+}
+.chat-list-view .list-cell .chat-row {
+    -fx-padding: 10 12;
+    -fx-background-radius: 8;
+    -fx-background-color: transparent;
+    -fx-border-color: #D7C6B4; /* Creamy border by default */
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+}
+.chat-list-view .list-cell .chat-row:hover {
+    -fx-background-color: #3C4046;
+    -fx-border-color: #E0D2C2; /* Slightly brighter creamy on hover */
+}
+.chat-list-view .list-cell:selected .chat-row {
+    -fx-background-color: #4A5794;
+    -fx-border-color: #FFFFFF; /* White border on selection */
+}
+
+
+.chat-name { -fx-font-weight: bold; -fx-text-fill: #FFFFFF; }
+.chat-last, .chat-time { -fx-text-fill: #8E9297; -fx-font-size: 12px; }
+.chat-list-view .list-cell:selected .chat-name,
+.chat-list-view .list-cell:selected .chat-last,
+.chat-list-view .list-cell:selected .chat-time {
+    -fx-text-fill: white;
+}
+.avatar { -fx-fill: #72767D; }
+.unread-badge { -fx-background-color: #F04747; -fx-text-fill: white; -fx-background-radius: 10; -fx-padding: 2 6; }
+.online-indicator { -fx-fill: #43B581; }
+
+.chat-header {
+    -fx-background-color: #36393F;
+    -fx-padding: 10 20;
+    -fx-alignment: CENTER_LEFT;
+    -fx-border-color: transparent transparent #202225 transparent;
+    -fx-border-width: 1.5;
+}
+.chat-title { -fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #FFFFFF; }
+.typing-label { -fx-text-fill: #8E9297; -fx-font-size: 12px; }
+
+.message-list {
+    -fx-background-color: transparent;
+    -fx-padding: 10;
+}
+.message-list .list-cell {
+    -fx-padding: 5 0;
+    -fx-background-color: transparent;
+}
+
+.bubble {
+    -fx-background-radius: 18;
+    -fx-padding: 10 14;
+    -fx-max-width: 450;
+}
+.bubble.sent {
+    -fx-background-color: #7289DA;
+}
+.bubble.sent .label {
+    -fx-text-fill: white;
+}
+.bubble.received {
+    -fx-background-color: #40444B;
+}
+.bubble.received .label {
+    -fx-text-fill: #DCDDDE;
+}
+.msg-time { -fx-font-size: 11px; -fx-text-fill: #72767D; }
+.bubble.sent .msg-time { -fx-text-fill: #C3CBE3; }
+
+.composer {
+    -fx-background-color: #36393F;
+    -fx-padding: 10 15;
+    -fx-alignment: CENTER;
+    -fx-border-color: #202225 transparent transparent transparent;
+    -fx-border-width: 1.5;
+}
+
+.send-button-pane {
+    -fx-padding: 0 0 0 10;
+}
+.send-button {
+    -fx-background-color: #7289DA;
+    -fx-text-fill: white;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 22;
+    -fx-pref-width: 44px;
+    -fx-pref-height: 44px;
+    -fx-cursor: hand;
+}
+.send-button:hover {
+    -fx-background-color: #677BC4;
+}
+
+.theme-toggle-button {
+    -fx-background-color: #2F3136;
+    -fx-text-fill: #DCDDDE;
+    -fx-font-family: "Segoe UI Emoji", "Segoe UI Symbol";
+    -fx-font-size: 14px;
+    -fx-pref-width: 30px;
+    -fx-pref-height: 30px;
+    -fx-background-radius: 15;
+    -fx-cursor: hand;
+}
+.theme-toggle-button:hover {
+    -fx-background-color: #40444B;
+}

@@ -10,23 +10,28 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane fx:controller="org.project.client.views.HomeController"
+<BorderPane fx:id="mainPane" fx:controller="org.project.client.views.HomeController"
             xmlns:fx="http://javafx.com/fxml/1" prefWidth="1000" prefHeight="640" styleClass="root">
     <left>
-        <VBox styleClass="sidebar">
+        <VBox fx:id="sidebarVBox" prefWidth="300" styleClass="sidebar">
             <children>
-                <TextField fx:id="chatSearchField" promptText="Search" styleClass="text-field">
+                <HBox alignment="CENTER_LEFT" styleClass="sidebar-header">
+                    <children>
+                        <Label text="Samoungram" styleClass="sidebar-title"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Button fx:id="themeToggleButton" onAction="#onToggleTheme" styleClass="theme-toggle-button"/>
+                    </children>
+                </HBox>
+                <TextField fx:id="chatSearchField" promptText="Search" styleClass="search-field">
                     <VBox.margin>
-                        <Insets bottom="10"/>
+                        <Insets bottom="10" top="5"/>
                     </VBox.margin>
                 </TextField>
                 <ListView fx:id="chatListView" VBox.vgrow="ALWAYS" styleClass="chat-list-view"/>
             </children>
-            <padding>
-                <Insets top="10" right="10" bottom="10" left="10"/>
-            </padding>
         </VBox>
     </left>
     <center>
@@ -34,13 +39,10 @@
             <top>
                 <HBox styleClass="chat-header">
                     <children>
-                        <Label fx:id="chatTitleLabel" styleClass="chat-title" text="Choose a chat"/>
+                        <Label fx:id="chatTitleLabel" styleClass="chat-title" text="Select a chat"/>
                         <Region HBox.hgrow="ALWAYS"/>
-                        <Label fx:id="typingLabel" text=""/>
+                        <Label fx:id="typingLabel" styleClass="typing-label" text=""/>
                     </children>
-                    <padding>
-                        <Insets top="8" right="12" bottom="8" left="12"/>
-                    </padding>
                 </HBox>
             </top>
             <center>
@@ -49,18 +51,14 @@
             <bottom>
                 <HBox styleClass="composer">
                     <children>
-                        <TextArea fx:id="messageField" promptText="Message" wrapText="true"
-                                  prefRowCount="1" styleClass="text-field" HBox.hgrow="ALWAYS">
-                            <minHeight>30.0</minHeight> </TextArea>
-                        <Button fx:id="sendButton" text="Send" onAction="#onSend" styleClass="action-button">
-                            <HBox.margin>
-                                <Insets left="10"/>
-                            </HBox.margin>
-                        </Button>
+                        <TextArea fx:id="messageField" promptText="Message..." wrapText="true"
+                                  prefRowCount="1" styleClass="message-input" HBox.hgrow="ALWAYS"/>
+                        <StackPane styleClass="send-button-pane">
+                            <children>
+                                <Button fx:id="sendButton" text="Send" onAction="#onSend" styleClass="send-button"/>
+                            </children>
+                        </StackPane>
                     </children>
-                    <padding>
-                        <Insets top="8" right="8" bottom="8" left="8"/>
-                    </padding>
                 </HBox>
             </bottom>
         </BorderPane>

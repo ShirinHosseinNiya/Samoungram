@@ -23,6 +23,10 @@ public enum PacketType {
     TYPING,
     SEARCH_USER,
     SEARCH_RESULTS,
+    USER_ONLINE,
+    USER_OFFLINE,
+    ONLINE_USERS_LIST,
+    MARK_AS_READ,
     ERROR,
     SUCCESS
 }

@@ -27,7 +27,6 @@ public class MessageServer {
                 "sent"
         );
         messageDAO.addMessage(message);
-        chatDAO.updatePVLastMessage(senderId, receiverId, message.getTimestamp());
     }
 
     public void sendMessageToGroup(UUID senderId, UUID groupId, String content) throws SQLException {
@@ -40,7 +39,6 @@ public class MessageServer {
                 "sent"
         );
         messageDAO.addMessage(message);
-        chatDAO.updateGroupLastMessage(groupId, message.getTimestamp());
     }
 
     public void sendMessageToChannel(UUID senderId, UUID channelId, String content) throws SQLException {
@@ -53,6 +51,5 @@ public class MessageServer {
                 "sent"
         );
         messageDAO.addMessage(message);
-        chatDAO.updateChannelLastMessage(channelId, message.getTimestamp());
     }
 }
