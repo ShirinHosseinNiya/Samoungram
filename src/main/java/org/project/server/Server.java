@@ -9,6 +9,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -21,13 +22,23 @@ public class Server {
     private final MessageDAO messageDAO;
     private final PrivateChatDAO privateChatDAO;
     private final ChatDAO chatDAO;
+    private final GroupDAO groupDAO;
+    private final ChannelDAO channelDAO;
+    private final Connection conn;
     private final Gson gson = new Gson();
 
     public Server(Connection conn) {
+        this.conn = conn;
         this.userDAO = new UserDAO(conn);
         this.messageDAO = new MessageDAO(conn);
         this.privateChatDAO = new PrivateChatDAO(conn);
         this.chatDAO = new ChatDAO(conn);
+        this.groupDAO = new GroupDAO(conn);
+        this.channelDAO = new ChannelDAO(conn);
+    }
+
+    public Connection getConnection() {
+        return conn;
     }
 
     public void addOnlineUser(UUID userId, ClientHandler handler) {
@@ -69,7 +80,8 @@ public class Server {
         UUID senderId = packet.getSenderId();
         UUID receiverId = packet.getReceiverId();
         createPrivateChatIfNotExist(senderId, receiverId);
-        Message message = new Message(UUID.randomUUID(), senderId, receiverId, packet.getContent(), packet.getTimestamp(), "SENT");
+        String senderProfileName = userDAO.getProfileNameById(senderId); // Get sender's profile name
+        Message message = new Message(UUID.randomUUID(), senderId, receiverId, packet.getContent(), packet.getTimestamp(), "SENT", senderProfileName);
         messageDAO.addMessage(message);
         ClientHandler receiverHandler = onlineUsers.get(receiverId);
         if (receiverHandler != null) {
@@ -79,10 +91,92 @@ public class Server {
         }
     }
 
+    public void sendGroupOrChannelMessage(Packet packet) throws SQLException {
+        String senderProfileName = userDAO.getProfileNameById(packet.getSenderId());
+        Message message = new Message(UUID.randomUUID(), packet.getSenderId(), packet.getReceiverId(), packet.getContent(), packet.getTimestamp(), "SENT", senderProfileName);
+        messageDAO.addMessage(message);
+
+        List<UUID> memberIds;
+        if (groupDAO.findGroupById(packet.getReceiverId()) != null) {
+            memberIds = groupDAO.listMembers(packet.getReceiverId());
+        } else {
+            memberIds = channelDAO.listMembers(packet.getReceiverId());
+        }
+
+        Packet newMsgPacket = new Packet(PacketType.NEW_MESSAGE);
+        newMsgPacket.setContent(gson.toJson(message));
+        for (UUID memberId : memberIds) {
+            if (!memberId.equals(packet.getSenderId())) {
+                ClientHandler handler = onlineUsers.get(memberId);
+                if (handler != null) {
+                    handler.send(newMsgPacket);
+                }
+            }
+        }
+    }
+
     private void createPrivateChatIfNotExist(UUID user1, UUID user2) throws SQLException {
         if (!privateChatDAO.privateChatExists(user1, user2)) {
             privateChatDAO.createPrivateChat(user1, user2);
         }
+    }
+
+    public void createGroup(UUID creatorId, String groupName) throws SQLException {
+        UUID groupId = UUID.randomUUID();
+        groupDAO.addGroup(groupId, groupName, creatorId);
+        groupDAO.addMemberToGroup(groupId, creatorId);
+    }
+
+    public void createChannel(UUID creatorId, String channelName) throws SQLException {
+        UUID channelId = UUID.randomUUID();
+        channelDAO.addChannel(channelId, channelName, creatorId);
+        channelDAO.addMemberToChannel(channelId, creatorId);
+    }
+
+    public void addMemberToChat(Packet packet) throws SQLException {
+        String[] parts = packet.getContent().split(";", 2);
+        UUID chatId = UUID.fromString(parts[0]);
+        String usernameToAdd = parts[1];
+
+        UUID userIdToAdd = userDAO.findUserIdByUsername(usernameToAdd);
+        if (userIdToAdd == null) {
+            System.out.println("User not found: " + usernameToAdd);
+            return;
+        }
+
+        if (groupDAO.findGroupById(chatId) != null) {
+            groupDAO.addMemberToGroup(chatId, userIdToAdd);
+        } else if (channelDAO.findChannelById(chatId) != null) {
+            channelDAO.addMemberToChannel(chatId, userIdToAdd);
+        }
+    }
+
+    public void sendMemberList(Packet packet) throws SQLException {
+        UUID chatId = packet.getReceiverId();
+        List<MemberViewModel> members = new ArrayList<>();
+
+        List<UUID> memberIds;
+        UUID creatorId = null;
+
+        if (groupDAO.findGroupById(chatId) != null) {
+            memberIds = groupDAO.listMembers(chatId);
+            creatorId = groupDAO.getGroupCreatorId(chatId);
+        } else {
+            memberIds = channelDAO.listMembers(chatId);
+            creatorId = channelDAO.getChannelOwnerId(chatId);
+        }
+
+        for (UUID memberId : memberIds) {
+            String profileName = userDAO.getProfileNameById(memberId);
+            if (profileName != null) {
+                boolean isCreator = memberId.equals(creatorId);
+                members.add(new MemberViewModel(memberId, profileName, isCreator));
+            }
+        }
+
+        Packet response = new Packet(PacketType.MEMBERS_LIST);
+        response.setContent(gson.toJson(members));
+        onlineUsers.get(packet.getSenderId()).send(response);
     }
 
     public void searchAndSendResults(Packet packet) {
@@ -116,6 +210,12 @@ public class Server {
                 history = messageDAO.getHistoryForPrivateChat(requesterId, receivedId);
             } else {
                 history = messageDAO.getHistoryForGroupOrChannel(receivedId);
+            }
+            // Ensure senderProfileName is populated for messages
+            for (Message msg : history) {
+                if (msg.getSenderProfileName() == null) {
+                    msg.setSenderProfileName(userDAO.getProfileNameById(msg.getSenderId()));
+                }
             }
             String jsonResponse = gson.toJson(history);
             Packet response = new Packet(PacketType.MESSAGES_LIST);

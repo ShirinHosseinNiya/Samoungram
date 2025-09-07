@@ -28,5 +28,10 @@ public enum PacketType {
     ONLINE_USERS_LIST,
     MARK_AS_READ,
     ERROR,
-    SUCCESS
+    SUCCESS,
+
+    // انواع جدید اضافه شده
+    ADD_MEMBER,
+    FETCH_MEMBERS,
+    MEMBERS_LIST
 }

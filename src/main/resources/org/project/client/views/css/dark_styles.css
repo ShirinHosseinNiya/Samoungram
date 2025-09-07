@@ -1,10 +1,8 @@
-/* === GENERAL STYLES (MODERN DARK) === */
 .root {
     -fx-background-color: #2F3136;
     -fx-font-family: "Segoe UI", Helvetica, Arial, sans-serif;
 }
 
-/* === HOME PAGE STYLES (MODERN DARK) === */
 .sidebar {
     -fx-background-color: #36393F;
     -fx-padding: 0;
@@ -52,19 +50,13 @@
     -fx-padding: 10 12;
     -fx-background-radius: 8;
     -fx-background-color: transparent;
-    -fx-border-color: #D7C6B4; /* Creamy border by default */
-    -fx-border-width: 1;
-    -fx-border-radius: 8;
 }
 .chat-list-view .list-cell .chat-row:hover {
     -fx-background-color: #3C4046;
-    -fx-border-color: #E0D2C2; /* Slightly brighter creamy on hover */
 }
 .chat-list-view .list-cell:selected .chat-row {
     -fx-background-color: #4A5794;
-    -fx-border-color: #FFFFFF; /* White border on selection */
 }
-
 
 .chat-name { -fx-font-weight: bold; -fx-text-fill: #FFFFFF; }
 .chat-last, .chat-time { -fx-text-fill: #8E9297; -fx-font-size: 12px; }
@@ -153,4 +145,135 @@
 }
 .theme-toggle-button:hover {
     -fx-background-color: #40444B;
+}
+
+.chat-type-label {
+    -fx-font-size: 10px;
+    -fx-text-fill: #8E9297;
+    -fx-font-style: italic;
+    -fx-padding: 0 0 0 2px;
+}
+.sidebar-footer {
+    -fx-padding: 10 15;
+    -fx-border-color: #202225 transparent transparent transparent;
+    -fx-border-width: 1.5;
+}
+.new-chat-button {
+    -fx-background-color: #7289DA;
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 8px 15px;
+    -fx-background-radius: 8px;
+    -fx-cursor: hand;
+    -fx-pref-width: 100%;
+}
+.new-chat-button:hover {
+    -fx-background-color: #677BC4;
+}
+
+.custom-dialog {
+    -fx-background-color: #36393F;
+    -fx-background-radius: 15px;
+    -fx-padding: 0;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.4), 15, 0, 0, 8);
+}
+.custom-dialog .header-panel {
+    -fx-background-color: #7289DA;
+    -fx-padding: 15px 20px;
+    -fx-background-radius: 15px 15px 0 0;
+}
+.custom-dialog .header-panel .label {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+.custom-dialog .content {
+    -fx-padding: 20px;
+    -fx-background-color: #2F3136;
+    -fx-background-radius: 0 0 15px 15px;
+}
+.custom-dialog .content .label {
+    -fx-text-fill: #DCDDDE;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+}
+.custom-dialog .text-field, .custom-dialog .combo-box {
+    -fx-background-color: #202225;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-border-color: #4F545C;
+    -fx-font-size: 13px;
+    -fx-padding: 8px 10px;
+    -fx-text-fill: #DCDDDE;
+}
+.custom-dialog .text-field:focused, .custom-dialog .combo-box:focused {
+    -fx-border-color: #7289DA;
+    -fx-border-width: 1.5;
+}
+
+.custom-dialog .button-bar {
+    -fx-background-color: #2F3136;
+    -fx-padding: 10px 20px;
+    -fx-background-radius: 0 0 15px 15px;
+}
+.custom-dialog .button {
+    -fx-background-color: #7289DA;
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 8px 15px;
+    -fx-background-radius: 8px;
+    -fx-cursor: hand;
+}
+.custom-dialog .button:hover {
+    -fx-background-color: #677BC4;
+}
+.custom-dialog .button:cancel {
+    -fx-background-color: #4F545C;
+    -fx-text-fill: white;
+}
+.custom-dialog .button:cancel:hover {
+    -fx-background-color: #36393F;
+}
+
+.custom-dialog .combo-box .list-cell {
+    -fx-background-color: #202225;
+    -fx-text-fill: #DCDDDE;
+    -fx-padding: 8px 10px;
+}
+.custom-dialog .combo-box-popup .list-view {
+    -fx-background-color: #202225;
+    -fx-border-color: #4F545C;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+}
+.custom-dialog .combo-box-popup .list-view .list-cell:filled:hover {
+    -fx-background-color: #36393F;
+    -fx-text-fill: #DCDDDE;
+}
+.custom-dialog .combo-box-popup .list-view .list-cell:filled:selected {
+    -fx-background-color: #4F545C;
+    -fx-text-fill: #DCDDDE;
+}
+
+.header-button {
+    -fx-background-color: #7289DA;
+    -fx-text-fill: white;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 8px;
+    -fx-padding: 6 12;
+    -fx-cursor: hand;
+    -fx-margin-left: 10;
+}
+.header-button:hover {
+    -fx-background-color: #677BC4;
+}
+
+.message-sender-name {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #7289DA;
+    -fx-padding: 0 0 2px 0;
 }

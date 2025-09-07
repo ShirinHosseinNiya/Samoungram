@@ -5,77 +5,80 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import org.project.models.Message;
 import org.project.models.MessageStatus;
 
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 import java.util.function.Supplier;
 
 class MessageListCell extends ListCell<Message> {
     private final Supplier<UUID> myIdProvider;
+    private final HBox graphic = new HBox();
+    private final VBox bubble = new VBox();
+    private final Label senderName = new Label();
+    private final Label text = new Label();
+    private final Label time = new Label();
 
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm").withZone(ZoneId.systemDefault());
 
     MessageListCell(Supplier<UUID> myIdProvider) {
         this.myIdProvider = myIdProvider;
-    }
 
-
-    @Override protected void updateItem(Message m, boolean empty) {
-        super.updateItem(m, empty);
-        if (empty || m == null) { setGraphic(null); return; }
-
-
-        boolean sentByMe = m.getSenderId() != null && m.getSenderId().equals(myIdProvider.get());
-
-
-        Label text = new Label(m.getContent());
+        senderName.getStyleClass().add("message-sender-name");
         text.setWrapText(true);
-
-
-        String statusIcon = sentByMe ? statusToIcon(m.getStatus()) : "";
-        Label time = new Label(formatTime(m.getTimestamp() == null ? 0L : m.getTimestamp().getTime()) +
-                (statusIcon.isEmpty()? "" : " " + statusIcon));
         time.getStyleClass().add("msg-time");
-
-
-        VBox bubble = new VBox(text, time);
-        bubble.getStyleClass().addAll("bubble", sentByMe ? "sent" : "received");
+        bubble.getStyleClass().add("bubble");
         bubble.setPadding(new Insets(8));
         bubble.setMaxWidth(480);
+        graphic.getChildren().add(bubble);
 
-
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
-
-
-        HBox row = new HBox(8);
-        row.setAlignment(Pos.CENTER);
-        if (sentByMe) row.getChildren().addAll(spacer, bubble); else row.getChildren().addAll(bubble, spacer);
-
-
-        setGraphic(row);
+        // Ensure the cell has no default text or graphic to avoid artifacts
         setText(null);
     }
 
+    @Override
+    protected void updateItem(Message m, boolean empty) {
+        super.updateItem(m, empty);
 
-    private String statusToIcon(String status) {
-        MessageStatus st = MessageStatus.fromDb(status);
-// سبک تلگرام‌مانند با یونیکد
-        return switch (st) {
-            case SENT -> "✓"; // sent
-            case DELIVERED -> "✓✓"; // delivered
-            case READ -> "✓✓"; // read — می‌توانید رنگ را در CSS متفاوت کنید
-        };
+        if (empty || m == null) {
+            setGraphic(null);
+            return;
+        }
+
+        text.setText(m.getContent());
+        time.setText(formatTime(m.getTimestamp() == null ? 0L : m.getTimestamp().getTime()));
+
+        boolean sentByMe = m.getSenderId() != null && m.getSenderId().equals(myIdProvider.get());
+
+        // Clear previous children and styles
+        bubble.getChildren().clear();
+        bubble.getStyleClass().removeAll("sent", "received");
+
+        if (sentByMe) {
+            graphic.setAlignment(Pos.CENTER_RIGHT);
+            bubble.getStyleClass().add("sent");
+            bubble.getChildren().addAll(text, time);
+        } else {
+            graphic.setAlignment(Pos.CENTER_LEFT);
+            bubble.getStyleClass().add("received");
+            // Only add sender name if it exists (for groups/channels)
+            if (m.getSenderProfileName() != null) {
+                senderName.setText(m.getSenderProfileName());
+                bubble.getChildren().add(senderName);
+            }
+            bubble.getChildren().addAll(text, time);
+        }
+
+        setGraphic(graphic);
     }
-
 
     private String formatTime(long epochMillis) {
         if (epochMillis <= 0) return "";
         java.time.LocalDateTime dt = java.time.Instant.ofEpochMilli(epochMillis)
                 .atZone(java.time.ZoneId.systemDefault()).toLocalDateTime();
-        java.time.format.DateTimeFormatter f = java.time.format.DateTimeFormatter.ofPattern("HH:mm");
-        return f.format(dt);
+        return TIME_FORMATTER.format(dt);
     }
 }

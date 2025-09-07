@@ -19,6 +19,7 @@ class ChatListCell extends ListCell<ChatItemViewModel> {
     private final Label time = new Label();
     private final Label unread = new Label();
     private final Circle onlineIndicator = new Circle(5);
+    private final Label chatTypeLabel = new Label();
     private final Set<UUID> onlineUsers;
 
     ChatListCell(Set<UUID> onlineUsers) {
@@ -30,11 +31,12 @@ class ChatListCell extends ListCell<ChatItemViewModel> {
         time.getStyleClass().add("chat-time");
         unread.getStyleClass().add("unread-badge");
         onlineIndicator.getStyleClass().add("online-indicator");
+        chatTypeLabel.getStyleClass().add("chat-type-label");
 
         HBox nameBox = new HBox(6, name, onlineIndicator);
         nameBox.setAlignment(Pos.CENTER_LEFT);
 
-        VBox center = new VBox(3, nameBox, last);
+        VBox center = new VBox(3, nameBox, chatTypeLabel, last);
         HBox.setHgrow(center, Priority.ALWAYS);
 
         VBox rightSide = new VBox(3, time, unread);
@@ -46,7 +48,8 @@ class ChatListCell extends ListCell<ChatItemViewModel> {
         root.getStyleClass().add("chat-row");
     }
 
-    @Override protected void updateItem(ChatItemViewModel item, boolean empty) {
+    @Override
+    protected void updateItem(ChatItemViewModel item, boolean empty) {
         super.updateItem(item, empty);
         if (empty || item == null) {
             setGraphic(null);
@@ -61,10 +64,29 @@ class ChatListCell extends ListCell<ChatItemViewModel> {
         unread.setVisible(hasUnread);
         unread.setManaged(hasUnread);
 
-        boolean isOnline = item.getType() == ChatItemViewModel.ChatType.PRIVATE && onlineUsers.contains(item.getChatId());
-        onlineIndicator.setVisible(isOnline);
-        onlineIndicator.setManaged(isOnline);
-
+        switch (item.getType()) {
+            case PRIVATE:
+                boolean isOnline = onlineUsers.contains(item.getChatId());
+                onlineIndicator.setVisible(isOnline);
+                onlineIndicator.setManaged(isOnline);
+                chatTypeLabel.setVisible(false);
+                chatTypeLabel.setManaged(false);
+                break;
+            case GROUP:
+                onlineIndicator.setVisible(false);
+                onlineIndicator.setManaged(false);
+                chatTypeLabel.setText("Group");
+                chatTypeLabel.setVisible(true);
+                chatTypeLabel.setManaged(true);
+                break;
+            case CHANNEL:
+                onlineIndicator.setVisible(false);
+                onlineIndicator.setManaged(false);
+                chatTypeLabel.setText("Channel");
+                chatTypeLabel.setVisible(true);
+                chatTypeLabel.setManaged(true);
+                break;
+        }
         setGraphic(root);
     }
 

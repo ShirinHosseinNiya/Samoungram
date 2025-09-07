@@ -15,6 +15,19 @@ public class UserDAO {
         this.conn = conn;
     }
 
+    public String getProfileNameById(UUID userId) throws SQLException {
+        String sql = "SELECT profile_name FROM users WHERE id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("profile_name");
+                }
+                return null;
+            }
+        }
+    }
+
     public List<User> searchUsers(String query) throws SQLException {
         List<User> users = new ArrayList<>();
         String sql = "SELECT id, username, password_hash, profile_name, status, bio, profile_picture FROM users WHERE username ILIKE ? OR profile_name ILIKE ? OR id::text ILIKE ?";

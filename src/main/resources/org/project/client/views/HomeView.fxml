@@ -31,16 +31,23 @@
                     </VBox.margin>
                 </TextField>
                 <ListView fx:id="chatListView" VBox.vgrow="ALWAYS" styleClass="chat-list-view"/>
+                <HBox alignment="CENTER_LEFT" styleClass="sidebar-footer">
+                    <children>
+                        <Button fx:id="createChatButton" onAction="#onCreateChat" text="New Chat" styleClass="new-chat-button"/>
+                    </children>
+                </HBox>
             </children>
         </VBox>
     </left>
     <center>
         <BorderPane>
             <top>
-                <HBox styleClass="chat-header">
+                <HBox alignment="CENTER_LEFT" styleClass="chat-header">
                     <children>
                         <Label fx:id="chatTitleLabel" styleClass="chat-title" text="Select a chat"/>
                         <Region HBox.hgrow="ALWAYS"/>
+                        <Button fx:id="addMemberButton" text="Add Member" styleClass="header-button" onAction="#onAddMember"/>
+                        <Button fx:id="viewMembersButton" text="View Members" styleClass="header-button" onAction="#onViewMembers"/>
                         <Label fx:id="typingLabel" styleClass="typing-label" text=""/>
                     </children>
                 </HBox>

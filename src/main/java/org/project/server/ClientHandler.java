@@ -3,12 +3,12 @@ package org.project.server;
 import com.google.gson.Gson;
 import org.project.models.Packet;
 import org.project.models.PacketType;
+import org.project.server.db.UserDAO;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
-import java.sql.SQLException;
 import java.util.UUID;
 
 public class ClientHandler implements Runnable {
@@ -65,7 +65,20 @@ public class ClientHandler implements Runnable {
                     }
                     break;
                 case SEND_MESSAGE:
-                    server.sendPrivateMessage(packet);
+                    boolean isUser = new UserDAO(server.getConnection()).findUserById(packet.getReceiverId());
+                    if (isUser) {
+                        server.sendPrivateMessage(packet);
+                    } else {
+                        server.sendGroupOrChannelMessage(packet);
+                    }
+                    break;
+                case CREATE_GROUP:
+                    server.createGroup(packet.getSenderId(), packet.getContent());
+                    server.sendChatsList(packet);
+                    break;
+                case CREATE_CHANNEL:
+                    server.createChannel(packet.getSenderId(), packet.getContent());
+                    server.sendChatsList(packet);
                     break;
                 case FETCH_CHATS:
                     server.sendChatsList(packet);
@@ -78,6 +91,12 @@ public class ClientHandler implements Runnable {
                     break;
                 case SEARCH_USER:
                     server.searchAndSendResults(packet);
+                    break;
+                case ADD_MEMBER:
+                    server.addMemberToChat(packet);
+                    break;
+                case FETCH_MEMBERS:
+                    server.sendMemberList(packet);
                     break;
                 default:
                     System.out.println("Unknown packet type received: " + packet.getType());
