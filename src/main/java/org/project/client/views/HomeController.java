@@ -150,6 +150,10 @@ public class HomeController implements Initializable {
                 (newMessage.getSenderId().equals(currentChat.getChatId()) || newMessage.getReceiverId().equals(currentChat.getChatId()))) {
             messageListView.getItems().add(newMessage);
         }
+
+        PauseTransition pause = new PauseTransition(Duration.millis(200));
+        pause.setOnFinished(event -> requestInitialChats());
+        pause.play();
     }
 
     private void renderSearchResults(String jsonContent) {
@@ -184,8 +188,6 @@ public class HomeController implements Initializable {
         String text = Optional.ofNullable(messageField.getText()).orElse("").trim();
         if (text.isEmpty() || currentChat == null) return;
 
-        boolean isNewChat = originalChats.stream().noneMatch(c -> c.getChatId().equals(currentChat.getChatId()));
-
         Message local = new Message(UUID.randomUUID(), myUserId, currentChat.getChatId(), text, new Timestamp(System.currentTimeMillis()), "SENT");
         messageListView.getItems().add(local);
         messageField.clear();
@@ -196,10 +198,8 @@ public class HomeController implements Initializable {
         p.setContent(text);
         client.sendPacket(p);
 
-        if (isNewChat) {
-            PauseTransition pause = new PauseTransition(Duration.millis(500));
-            pause.setOnFinished(event -> requestInitialChats());
-            pause.play();
-        }
+        PauseTransition pause = new PauseTransition(Duration.millis(500));
+        pause.setOnFinished(event -> requestInitialChats());
+        pause.play();
     }
 }
