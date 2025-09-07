@@ -6,6 +6,7 @@ import org.project.models.Message;
 import org.project.models.Packet;
 import org.project.models.PacketType;
 import org.project.models.User;
+import org.project.models.PrivateChat;
 import org.project.server.db.*;
 
 import java.net.ServerSocket;
@@ -54,6 +55,36 @@ public class Server {
         }
     }
 
+    public void sendPrivateMessage(Packet packet) throws SQLException {
+        UUID senderId = packet.getSenderId();
+        UUID receiverId = packet.getReceiverId();
+
+        createPrivateChatIfNotExist(senderId, receiverId);
+
+        Message message = new Message(
+                UUID.randomUUID(),
+                senderId,
+                receiverId,
+                packet.getContent(),
+                packet.getTimestamp(),
+                "SENT"
+        );
+        messageDAO.addMessage(message);
+
+        ClientHandler receiverHandler = onlineUsers.get(receiverId);
+        if (receiverHandler != null) {
+            Packet newMsgPacket = new Packet(PacketType.NEW_MESSAGE);
+            newMsgPacket.setContent(gson.toJson(message));
+            receiverHandler.send(newMsgPacket);
+        }
+    }
+
+    private void createPrivateChatIfNotExist(UUID user1, UUID user2) throws SQLException {
+        if (!privateChatDAO.privateChatExists(user1, user2)) {
+            privateChatDAO.createPrivateChat(user1, user2);
+        }
+    }
+
     public void searchAndSendResults(Packet packet) {
         try {
             List<User> users = userDAO.searchUsers(packet.getContent());
@@ -66,31 +97,6 @@ public class Server {
             }
         } catch (SQLException e) {
             e.printStackTrace();
-        }
-    }
-
-    public void sendPrivateMessage(Packet packet) throws SQLException {
-        createPrivateChatIfNotExist(packet.getSenderId(), packet.getReceiverId());
-        Message message = new Message(
-                UUID.randomUUID(),
-                packet.getSenderId(),
-                packet.getReceiverId(),
-                packet.getContent(),
-                packet.getTimestamp(),
-                "SENT"
-        );
-        messageDAO.addMessage(message);
-        ClientHandler receiverHandler = onlineUsers.get(packet.getReceiverId());
-        if (receiverHandler != null) {
-            Packet newMsgPacket = new Packet(PacketType.NEW_MESSAGE);
-            newMsgPacket.setContent(gson.toJson(message));
-            receiverHandler.send(newMsgPacket);
-        }
-    }
-
-    private void createPrivateChatIfNotExist(UUID user1, UUID user2) throws SQLException {
-        if (!privateChatDAO.privateChatExists(user1, user2)) {
-            privateChatDAO.createPrivateChat(user1, user2);
         }
     }
 
@@ -108,11 +114,21 @@ public class Server {
 
     public void sendChatHistory(Packet packet) {
         try {
-            List<Message> history = messageDAO.getHistoryForPrivateChat(packet.getSenderId(), packet.getReceiverId());
+            UUID receivedId = packet.getReceiverId(); // This can be a userId, groupId, or channelId
+            UUID requesterId = packet.getSenderId();
+            List<Message> history;
+
+            boolean isUser = userDAO.findUserById(receivedId);
+            if (isUser) {
+                history = messageDAO.getHistoryForPrivateChat(requesterId, receivedId);
+            } else {
+                history = messageDAO.getHistoryForGroupOrChannel(receivedId);
+            }
+
             String jsonResponse = gson.toJson(history);
             Packet response = new Packet(PacketType.MESSAGES_LIST);
             response.setContent(jsonResponse);
-            onlineUsers.get(packet.getSenderId()).send(response);
+            onlineUsers.get(requesterId).send(response);
         } catch (SQLException e) {
             e.printStackTrace();
         }

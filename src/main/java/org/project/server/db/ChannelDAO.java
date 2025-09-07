@@ -1,5 +1,6 @@
 package org.project.server.db;
 
+import org.project.models.Channel;
 import java.sql.*;
 import java.util.*;
 
@@ -11,53 +12,69 @@ public class ChannelDAO {
     }
 
     public void addChannel(UUID channelId, String name, UUID ownerId) throws SQLException {
-        String sql = "INSERT INTO channels (id, name, owner_id) VALUES (?, ?, ?)";
+        String sql = "INSERT INTO channels (channel_id, channel_name, channel_owner_id) VALUES (?, ?, ?)";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, channelId.toString());
+            stmt.setObject(1, channelId);
             stmt.setString(2, name);
-            stmt.setString(3, ownerId.toString());
+            stmt.setObject(3, ownerId);
             stmt.executeUpdate();
         }
     }
 
     public void addMemberToChannel(UUID channelId, UUID memberId) throws SQLException {
-        String sql = "INSERT INTO channel_members (channel_id, user_id) VALUES (?, ?)";
+        String sql = "INSERT INTO channel_members (channel_id, member_id) VALUES (?, ?)";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, channelId.toString());
-            stmt.setString(2, memberId.toString());
+            stmt.setObject(1, channelId);
+            stmt.setObject(2, memberId);
             stmt.executeUpdate();
         }
     }
 
     public void removeMemberFromChannel(UUID channelId, UUID memberId) throws SQLException {
-        String sql = "DELETE FROM channel_members WHERE channel_id = ? AND user_id = ?";
+        String sql = "DELETE FROM channel_members WHERE channel_id = ? AND member_id = ?";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, channelId.toString());
-            stmt.setString(2, memberId.toString());
+            stmt.setObject(1, channelId);
+            stmt.setObject(2, memberId);
             stmt.executeUpdate();
         }
     }
 
     public UUID getChannelOwnerId(UUID channelId) throws SQLException {
-        String sql = "SELECT owner_id FROM channels WHERE id = ?";
+        String sql = "SELECT channel_owner_id FROM channels WHERE channel_id = ?";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, channelId.toString());
+            stmt.setObject(1, channelId);
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
-                return UUID.fromString(rs.getString("owner_id"));
+                return (UUID) rs.getObject("channel_owner_id");
             }
             return null;
         }
     }
 
+    public Channel findChannelById(UUID channelId) throws SQLException {
+        String sql = "SELECT * FROM channels WHERE channel_id = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setObject(1, channelId);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return new Channel(
+                        (UUID) rs.getObject("channel_id"),
+                        rs.getString("channel_name"),
+                        (UUID) rs.getObject("channel_owner_id")
+                );
+            }
+        }
+        return null;
+    }
+
     public List<UUID> listMembers(UUID channelId) throws SQLException {
         List<UUID> members = new ArrayList<>();
-        String sql = "SELECT user_id FROM channel_members WHERE channel_id = ?";
+        String sql = "SELECT member_id FROM channel_members WHERE channel_id = ?";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, channelId.toString());
+            stmt.setObject(1, channelId);
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
-                members.add(UUID.fromString(rs.getString("user_id")));
+                members.add((UUID) rs.getObject("member_id"));
             }
         }
         return members;

@@ -40,7 +40,6 @@ public class UserDAO {
         return users;
     }
 
-    // The rest of your methods like register, login, etc. go here
     public UUID register(String username, String rawPassword, String profileName) throws SQLException {
         if (username == null || rawPassword == null || profileName == null) {
             return null;
@@ -81,6 +80,16 @@ public class UserDAO {
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) return (UUID) rs.getObject(1);
                 return null;
+            }
+        }
+    }
+
+    public boolean findUserById(UUID userId) throws SQLException {
+        String sql = "SELECT 1 FROM users WHERE id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
             }
         }
     }

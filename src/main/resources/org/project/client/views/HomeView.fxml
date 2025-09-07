@@ -17,8 +17,12 @@
     <left>
         <VBox styleClass="sidebar">
             <children>
-                <TextField fx:id="chatSearchField" promptText="Search" styleClass="text-field"/>
-                <ListView fx:id="chatListView" prefWidth="280"/>
+                <TextField fx:id="chatSearchField" promptText="Search" styleClass="text-field">
+                    <VBox.margin>
+                        <Insets bottom="10"/>
+                    </VBox.margin>
+                </TextField>
+                <ListView fx:id="chatListView" VBox.vgrow="ALWAYS" styleClass="chat-list-view"/>
             </children>
             <padding>
                 <Insets top="10" right="10" bottom="10" left="10"/>
@@ -46,8 +50,13 @@
                 <HBox styleClass="composer">
                     <children>
                         <TextArea fx:id="messageField" promptText="Message" wrapText="true"
-                                  prefRowCount="1" styleClass="text-field" HBox.hgrow="ALWAYS"/>
-                        <Button fx:id="sendButton" text="Send" onAction="#onSend" styleClass="action-button"/>
+                                  prefRowCount="1" styleClass="text-field" HBox.hgrow="ALWAYS">
+                            <minHeight>30.0</minHeight> </TextArea>
+                        <Button fx:id="sendButton" text="Send" onAction="#onSend" styleClass="action-button">
+                            <HBox.margin>
+                                <Insets left="10"/>
+                            </HBox.margin>
+                        </Button>
                     </children>
                     <padding>
                         <Insets top="8" right="8" bottom="8" left="8"/>

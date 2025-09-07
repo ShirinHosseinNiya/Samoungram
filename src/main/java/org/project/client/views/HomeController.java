@@ -133,11 +133,22 @@ public class HomeController implements Initializable {
             case SEARCH_RESULTS:
                 renderSearchResults(packet.getContent());
                 break;
+            case NEW_MESSAGE:
+                handleNewMessage(packet.getContent());
+                break;
             case TYPING:
                 typingLabel.setText("is typing...");
                 break;
             default:
                 break;
+        }
+    }
+
+    private void handleNewMessage(String jsonContent) {
+        Message newMessage = gson.fromJson(jsonContent, Message.class);
+        if (currentChat != null &&
+                (newMessage.getSenderId().equals(currentChat.getChatId()) || newMessage.getReceiverId().equals(currentChat.getChatId()))) {
+            messageListView.getItems().add(newMessage);
         }
     }
 
@@ -172,13 +183,23 @@ public class HomeController implements Initializable {
     private void onSend() {
         String text = Optional.ofNullable(messageField.getText()).orElse("").trim();
         if (text.isEmpty() || currentChat == null) return;
+
+        boolean isNewChat = originalChats.stream().noneMatch(c -> c.getChatId().equals(currentChat.getChatId()));
+
         Message local = new Message(UUID.randomUUID(), myUserId, currentChat.getChatId(), text, new Timestamp(System.currentTimeMillis()), "SENT");
         messageListView.getItems().add(local);
         messageField.clear();
+
         Packet p = new Packet(PacketType.SEND_MESSAGE);
         p.setSenderId(myUserId);
         p.setReceiverId(currentChat.getChatId());
         p.setContent(text);
         client.sendPacket(p);
+
+        if (isNewChat) {
+            PauseTransition pause = new PauseTransition(Duration.millis(500));
+            pause.setOnFinished(event -> requestInitialChats());
+            pause.play();
+        }
     }
 }

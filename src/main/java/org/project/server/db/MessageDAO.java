@@ -14,7 +14,7 @@ public class MessageDAO {
     }
 
     public void addMessage(Message message) throws SQLException {
-        String sql = "INSERT INTO message_history (message_id, sender_id, receiver_id, content, \"timestamp\", status) VALUES (?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO message_history (message_id, sender_id, receiver_is, content, \"timestamp\", status) VALUES (?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setObject(1, message.getMessageId());
             ps.setObject(2, message.getSenderId());
@@ -28,7 +28,7 @@ public class MessageDAO {
 
     public List<Message> getHistoryForPrivateChat(UUID user1, UUID user2) throws SQLException {
         List<Message> history = new ArrayList<>();
-        String sql = "SELECT * FROM message_history WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) ORDER BY \"timestamp\" ASC";
+        String sql = "SELECT * FROM message_history WHERE (sender_id = ? AND receiver_is = ?) OR (sender_id = ? AND receiver_is = ?) ORDER BY \"timestamp\" ASC";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setObject(1, user1);
             ps.setObject(2, user2);
@@ -39,7 +39,27 @@ public class MessageDAO {
                 history.add(new Message(
                         (UUID) rs.getObject("message_id"),
                         (UUID) rs.getObject("sender_id"),
-                        (UUID) rs.getObject("receiver_id"),
+                        (UUID) rs.getObject("receiver_is"),
+                        rs.getString("content"),
+                        rs.getTimestamp("timestamp"),
+                        rs.getString("status")
+                ));
+            }
+        }
+        return history;
+    }
+
+    public List<Message> getHistoryForGroupOrChannel(UUID chatId) throws SQLException {
+        List<Message> history = new ArrayList<>();
+        String sql = "SELECT * FROM message_history WHERE receiver_is = ? ORDER BY \"timestamp\" ASC";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, chatId);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                history.add(new Message(
+                        (UUID) rs.getObject("message_id"),
+                        (UUID) rs.getObject("sender_id"),
+                        (UUID) rs.getObject("receiver_is"),
                         rs.getString("content"),
                         rs.getTimestamp("timestamp"),
                         rs.getString("status")
