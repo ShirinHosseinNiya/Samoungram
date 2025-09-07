@@ -49,25 +49,21 @@ public class ClientHandler implements Runnable {
             switch (packet.getType()) {
                 case SIGN_UP:
                     String[] signUpInfo = packet.getContent().split(";", 3);
-                    UUID newUserId = server.registerUser(signUpInfo[0], signUpInfo[1], signUpInfo[2]);
-
+                    server.registerUser(signUpInfo[0], signUpInfo[1], signUpInfo[2]);
                     response = new Packet(PacketType.SUCCESS);
                     response.setSuccess(true);
-                    response.setContent("Registration successful.");
                     send(response);
                     break;
 
                 case LOGIN:
                     String[] loginInfo = packet.getContent().split(";", 2);
                     UUID loggedInUserId = server.authenticateUser(loginInfo[0], loginInfo[1]);
-
                     response = new Packet(PacketType.LOGIN);
                     if (loggedInUserId != null) {
                         this.userId = loggedInUserId;
                         server.addOnlineUser(this.userId, this);
                         response.setSuccess(true);
                         response.setReceiverId(this.userId);
-                        response.setContent("Login successful!");
                     } else {
                         response.setSuccess(false);
                         response.setErrorMessage("Invalid credentials.");
@@ -75,44 +71,20 @@ public class ClientHandler implements Runnable {
                     send(response);
                     break;
 
-                case LOGOUT:
-                    server.removeOnlineUser(packet.getSenderId());
+                case FETCH_CHATS:
+                    server.sendChatsList(packet);
+                    break;
+
+                case FETCH_CHAT_HISTORY:
+                    server.sendChatHistory(packet);
                     break;
 
                 case SEND_MESSAGE:
                     server.sendPrivateMessage(packet);
                     break;
 
-                case SEND_GROUP_MESSAGE:
-                    server.broadcastToGroup(packet.getReceiverId(), packet);
-                    break;
-
-                case SEND_CHANNEL_MESSAGE:
-                    server.broadcastToChannel(packet.getReceiverId(), packet);
-                    break;
-
-                case CREATE_GROUP:
-                    UUID groupId = server.createGroup(packet.getContent(), packet.getSenderId());
-                    response = new Packet(PacketType.SUCCESS);
-                    response.setContent("GROUP_ID:" + groupId);
-                    send(response);
-                    break;
-
-                case ADD_GROUP_MEMBER:
-                    server.addMemberToGroup(packet.getReceiverId(), packet.getSenderId());
-                    send(new Packet(PacketType.SUCCESS));
-                    break;
-
-                case CREATE_CHANNEL:
-                    UUID channelId = server.createChannel(packet.getContent(), packet.getSenderId());
-                    response = new Packet(PacketType.SUCCESS);
-                    response.setContent("CHANNEL_ID:" + channelId);
-                    send(response);
-                    break;
-
-                case ADD_CHANNEL_MEMBER:
-                    server.addMemberToChannel(packet.getReceiverId(), packet.getSenderId());
-                    send(new Packet(PacketType.SUCCESS));
+                case SEARCH_USER:
+                    server.searchAndSendResults(packet);
                     break;
 
                 default:

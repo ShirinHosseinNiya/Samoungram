@@ -1,8 +1,11 @@
 package org.project.server.db;
 
+import org.project.models.User;
 import org.project.util.PasswordUtil;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public class UserDAO {
@@ -12,6 +15,32 @@ public class UserDAO {
         this.conn = conn;
     }
 
+    public List<User> searchUsers(String query) throws SQLException {
+        List<User> users = new ArrayList<>();
+        String sql = "SELECT id, username, password_hash, profile_name, status, bio, profile_picture FROM users WHERE username ILIKE ? OR profile_name ILIKE ? OR id::text ILIKE ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            String likeQuery = "%" + query + "%";
+            ps.setString(1, likeQuery);
+            ps.setString(2, likeQuery);
+            ps.setString(3, likeQuery);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    users.add(new User(
+                            (UUID) rs.getObject("id"),
+                            rs.getString("username"),
+                            rs.getString("password_hash"),
+                            rs.getString("profile_name"),
+                            rs.getString("status"),
+                            rs.getString("bio"),
+                            rs.getString("profile_picture")
+                    ));
+                }
+            }
+        }
+        return users;
+    }
+
+    // The rest of your methods like register, login, etc. go here
     public UUID register(String username, String rawPassword, String profileName) throws SQLException {
         if (username == null || rawPassword == null || profileName == null) {
             return null;
@@ -51,53 +80,6 @@ public class UserDAO {
             ps.setString(1, username);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) return (UUID) rs.getObject(1);
-                return null;
-            }
-        }
-    }
-
-    public boolean updateProfile(UUID userId, String profileName, String status, String bio, String profilePicture) throws SQLException {
-        String sql = "UPDATE users SET profile_name = ?, status = ?, bio = ?, profile_picture = ? WHERE id = ?";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, profileName);
-            ps.setString(2, status);
-            ps.setString(3, bio);
-            ps.setString(4, profilePicture);
-            ps.setObject(5, userId);
-            return ps.executeUpdate() > 0;
-        }
-    }
-
-    public boolean changePassword(UUID userId, String oldRawPassword, String newRawPassword) throws SQLException {
-        String sql = "SELECT password_hash FROM users WHERE id = ?";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setObject(1, userId);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (!rs.next()) return false;
-                String currentHash = rs.getString(1);
-                if (!PasswordUtil.checkPassword(oldRawPassword, currentHash)) return false;
-            }
-        }
-        String newHash = PasswordUtil.hashPassword(newRawPassword);
-        String upd = "UPDATE users SET password_hash = ? WHERE id = ?";
-        try (PreparedStatement ps = conn.prepareStatement(upd)) {
-            ps.setString(1, newHash);
-            ps.setObject(2, userId);
-            return ps.executeUpdate() > 0;
-        }
-    }
-
-    public String getProfile(UUID userId) throws SQLException {
-        String sql = "SELECT profile_name, status, bio, profile_picture FROM users WHERE id = ?";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setObject(1, userId);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return "Name: " + rs.getString("profile_name") +
-                            "\nStatus: " + rs.getString("status") +
-                            "\nBio: " + rs.getString("bio") +
-                            "\nPicture: " + rs.getString("profile_picture");
-                }
                 return null;
             }
         }

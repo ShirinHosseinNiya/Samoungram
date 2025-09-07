@@ -4,12 +4,15 @@ plugins {
     id 'org.openjfx.javafxplugin' version '0.0.13'
 }
 
-group = 'org.project'
-version = '1.0-SNAPSHOT'
+group 'org.project'
+version '1.0-SNAPSHOT'
 
 repositories {
     mavenCentral()
 }
+
+sourceCompatibility = '17'
+targetCompatibility = '17'
 
 application {
     mainClass = 'org.project.Main'
@@ -21,15 +24,11 @@ javafx {
 }
 
 dependencies {
-    // For password hashing
+    implementation 'com.google.code.gson:gson:2.10.1'
+    implementation 'org.postgresql:postgresql:42.6.0'
     implementation 'org.mindrot:jbcrypt:0.4'
-
-    // This is the new line for the PostgreSQL driver
-    runtimeOnly 'org.postgresql:postgresql:42.7.3'
-
-    // For testing
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.2'
 }
 
 test {

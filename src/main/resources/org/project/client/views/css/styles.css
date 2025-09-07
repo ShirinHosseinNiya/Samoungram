@@ -16,6 +16,7 @@
     -fx-border-radius: 5px;
     -fx-background-radius: 5px;
     -fx-background-color: #ffffff;
+    -fx-prompt-text-fill: #A9A9A9;
 }
 
 .text-field:focused {
@@ -37,7 +38,7 @@
 }
 
 .status-label {
-    -fx-text-fill: #722F37;
+    -fx-text-fill: #D32F2F;
     -fx-font-size: 13px;
     -fx-font-weight: bold;
     -fx-padding: 5px 0;
@@ -54,24 +55,80 @@
     -fx-underline: true;
 }
 
-/* سایدبار */
-.sidebar { -fx-background-color: #101821; }
-.sidebar .text-field { -fx-background-color: #0c141c; -fx-text-fill: #cdd6df; }
-.chat-row { -fx-padding: 10 8; }
-.chat-name { -fx-font-weight: bold; -fx-text-fill: #e8eef6; }
-.chat-last { -fx-text-fill: #9bb1c9; }
-.chat-time { -fx-text-fill: #7f96ad; -fx-font-size: 11px; }
-.avatar { -fx-fill: #3b82f6; }
-.unread-badge { -fx-background-color: #22c55e; -fx-text-fill: white; -fx-padding: 2 6; -fx-background-radius: 10; }
+.sidebar {
+    -fx-background-color: #EFEBE6;
+    -fx-padding: 10;
+    -fx-spacing: 10;
+    -fx-border-color: transparent #722F37 transparent transparent;
+    -fx-border-width: 2;
+}
 
+.chat-row {
+    -fx-padding: 10 8;
+    -fx-background-color: transparent;
+}
+.chat-row:hover {
+    -fx-background-color: #e0d8d0;
+}
+.chat-row:selected {
+    -fx-background-color: #D3B8B8;
+}
 
-/* هدر گفتگو */
-.chat-header { -fx-background-color: #0b1620; -fx-alignment: CENTER_LEFT; }
+.chat-name { -fx-font-weight: bold; -fx-text-fill: #5C252C; }
+.chat-last { -fx-text-fill: #722F37; }
+.chat-time { -fx-text-fill: #7f6065; -fx-font-size: 11px; }
+.avatar { -fx-fill: #722F37; }
+.unread-badge { -fx-background-color: #5C252C; -fx-text-fill: white; -fx-padding: 2 6; -fx-background-radius: 10; }
 
+.chat-header {
+    -fx-background-color: #EFEBE6;
+    -fx-alignment: CENTER_LEFT;
+    -fx-border-color: transparent transparent #722F37 transparent;
+    -fx-border-width: 2;
+}
+.chat-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #722F37;
+}
 
-/* ناحیه پیام‌ها */
-.bubble { -fx-background-color: #1f2a37; -fx-background-radius: 16; }
-.bubble.sent { -fx-background-color: #2b3c52; }
-.bubble.received { -fx-background-color: #1f2a37; }
-.msg-time { -fx-font-size: 10px; -fx-text-fill: #9bb1c9; }
-.msg-time:focused { -fx-text-fill: #9bb1c9; }
+.message-list {
+    -fx-background-color: #FAF0E6;
+    -fx-padding: 10;
+}
+.bubble {
+    -fx-background-radius: 16;
+    -fx-padding: 8 12;
+}
+.bubble.sent {
+    -fx-background-color: #D3B8B8;
+}
+.bubble.received {
+    -fx-background-color: #FFFFFF;
+}
+.msg-time {
+    -fx-font-size: 10px;
+    -fx-text-fill: #7f6065;
+}
+
+.composer {
+    -fx-background-color: #EFEBE6;
+    -fx-padding: 8;
+    -fx-spacing: 8;
+    -fx-alignment: CENTER;
+    -fx-border-color: #722F37 transparent transparent transparent;
+    -fx-border-width: 2;
+}
+
+.list-view {
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+    -fx-background-color: transparent;
+}
+.list-view .list-cell {
+    -fx-padding: 0;
+    -fx-background-color: transparent;
+}
+.list-view .scroll-bar:vertical, .list-view .scroll-bar:horizontal {
+    -fx-background-color: transparent;
+}

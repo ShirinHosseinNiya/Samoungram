@@ -14,8 +14,8 @@ public class Main extends Application {
     @Override
     public void start(Stage primaryStage) throws IOException {
         Parent root = FXMLLoader.load(Objects.requireNonNull(getClass().getResource("/org/project/client/views/LoginAndSignUpView.fxml")));
-        primaryStage.setTitle("SamoonGram Client");
-        primaryStage.setScene(new Scene(root, 400, 400));
+        primaryStage.setTitle("Samoungram Client");
+        primaryStage.setScene(new Scene(root, 400, 350));
         primaryStage.show();
     }
 

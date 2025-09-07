@@ -11,7 +11,7 @@
 
 <VBox alignment="CENTER" prefHeight="350.0" prefWidth="400.0" spacing="15.0" styleClass="root" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.project.client.views.LoginAndSignUpController">
     <children>
-        <Label styleClass="app-title" text="SamoonGram" />
+        <Label styleClass="app-title" text="Samoungram" />
         <TextField fx:id="usernameField" maxWidth="250.0" promptText="Username" styleClass="text-field" />
         <PasswordField fx:id="passwordField" maxWidth="250.0" promptText="Password" styleClass="text-field" />
         <TextField fx:id="profileNameField" maxWidth="250.0" promptText="Profile Name (for Sign Up)" styleClass="text-field" visible="false" />

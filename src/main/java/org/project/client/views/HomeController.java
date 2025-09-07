@@ -1,18 +1,22 @@
 package org.project.client.views;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
-import javafx.util.Callback;
+import javafx.scene.input.KeyCode;
+import javafx.util.Duration;
 import org.project.client.NetworkClient;
 import org.project.models.Message;
 import org.project.models.Packet;
 import org.project.models.PacketType;
-
+import org.project.models.User;
+import java.lang.reflect.Type;
 import java.net.URL;
 import java.sql.Timestamp;
 import java.util.*;
@@ -27,18 +31,17 @@ public class HomeController implements Initializable {
     @FXML private Label typingLabel;
     @FXML private TextArea messageField;
     @FXML private Button sendButton;
-
     private final ExecutorService listenerPool = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "packet-listener");
         t.setDaemon(true); return t;
     });
-
     private NetworkClient client;
     private UUID myUserId;
     private ChatItemViewModel currentChat;
-
     private final ObservableList<ChatItemViewModel> allChats = FXCollections.observableArrayList();
-    private FilteredList<ChatItemViewModel> filteredChats;
+    private final PauseTransition searchDebouncer = new PauseTransition(Duration.millis(400));
+    private final ObservableList<ChatItemViewModel> originalChats = FXCollections.observableArrayList();
+    private final Gson gson = new Gson();
 
     public void initWith(NetworkClient client, UUID myUserId) {
         this.client = client;
@@ -49,13 +52,8 @@ public class HomeController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        chatListView.setCellFactory(new Callback<>() {
-            @Override public ListCell<ChatItemViewModel> call(ListView<ChatItemViewModel> param) {
-                return new ChatListCell();
-            }
-        });
-        filteredChats = new FilteredList<>(allChats, c -> true);
-        chatListView.setItems(filteredChats);
+        chatListView.setCellFactory(param -> new ChatListCell());
+        chatListView.setItems(allChats);
 
         chatListView.getSelectionModel().selectedItemProperty().addListener((obs, oldV, newV) -> {
             if (newV != null) {
@@ -65,23 +63,32 @@ public class HomeController implements Initializable {
             }
         });
 
-        chatSearchField.textProperty().addListener((obs, old, q) -> {
-            String query = q == null ? "" : q.trim().toLowerCase(Locale.ROOT);
-            filteredChats.setPredicate(item -> query.isEmpty() ||
-                    item.getDisplayName().toLowerCase(Locale.ROOT).contains(query) ||
-                    (item.getLastMessage() != null && item.getLastMessage().toLowerCase(Locale.ROOT).contains(query))
-            );
-        });
-
-        messageListView.setCellFactory(list -> new MessageListCell(() -> myUserId));
-
-        messageField.setOnKeyPressed(ev -> {
-            switch (ev.getCode()) {
-                case ENTER -> {
-                    if (!ev.isShiftDown()) { ev.consume(); onSend(); }
-                }
+        searchDebouncer.setOnFinished(event -> sendSearchRequest());
+        chatSearchField.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && !newVal.trim().isEmpty()) {
+                searchDebouncer.playFromStart();
+            } else {
+                searchDebouncer.stop();
+                allChats.setAll(originalChats);
             }
         });
+        messageListView.setCellFactory(list -> new MessageListCell(() -> myUserId));
+        messageField.setOnKeyPressed(ev -> {
+            if (ev.getCode() == KeyCode.ENTER && !ev.isShiftDown()) {
+                ev.consume();
+                onSend();
+            }
+        });
+    }
+
+    private void sendSearchRequest() {
+        String query = chatSearchField.getText().trim();
+        if (!query.isEmpty()) {
+            Packet searchPacket = new Packet(PacketType.SEARCH_USER);
+            searchPacket.setSenderId(myUserId);
+            searchPacket.setContent(query);
+            client.sendPacket(searchPacket);
+        }
     }
 
     private void requestInitialChats() {
@@ -113,48 +120,65 @@ public class HomeController implements Initializable {
     }
 
     private void handleIncoming(Packet packet) {
-        if (packet == null) return;
-        PacketType t = packet.getType();
-        if (t == null) return;
-        switch (t) {
-            case CHATS_LIST -> renderChats(parseChats(packet.getContent()));
-            case MESSAGES_LIST -> renderMessages(parseMessages(packet.getContent()));
-            case NEW_MESSAGE -> appendMessage(parseSingleMessage(packet));
-            case MESSAGE_STATUS_UPDATE -> updateMessageStatus(packet);
-            case TYPING -> typingLabel.setText("در حال تایپ...");
-            case SUCCESS -> { /* برای لاگین/ثبت‌نام موفق */ }
-            case ERROR -> { /* نمایش خطا */ }
-            default -> { /* سایر PacketTypeها */ }
+        if (packet == null || packet.getType() == null) return;
+        switch (packet.getType()) {
+            case CHATS_LIST:
+                List<ChatItemViewModel> chats = parseChats(packet.getContent());
+                originalChats.setAll(chats);
+                allChats.setAll(chats);
+                break;
+            case MESSAGES_LIST:
+                renderMessages(parseMessages(packet.getContent()));
+                break;
+            case SEARCH_RESULTS:
+                renderSearchResults(packet.getContent());
+                break;
+            case TYPING:
+                typingLabel.setText("is typing...");
+                break;
+            default:
+                break;
         }
     }
 
+    private void renderSearchResults(String jsonContent) {
+        Type userListType = new TypeToken<ArrayList<User>>(){}.getType();
+        List<User> users = gson.fromJson(jsonContent, userListType);
+        List<ChatItemViewModel> searchResults = new ArrayList<>();
+        for (User user : users) {
+            if (user.getId().equals(myUserId)) continue;
+            searchResults.add(new ChatItemViewModel(user.getId(), user.getProfileName(), ChatItemViewModel.ChatType.PRIVATE, "@" + user.getUsername(), 0, 0));
+        }
+        allChats.setAll(searchResults);
+    }
 
+    private List<ChatItemViewModel> parseChats(String jsonContent) {
+        if (jsonContent == null || jsonContent.isEmpty()) return new ArrayList<>();
+        Type chatListType = new TypeToken<ArrayList<ChatItemViewModel>>(){}.getType();
+        return gson.fromJson(jsonContent, chatListType);
+    }
 
-    // --- متدهای کمکی (مثل قبل) ---
-    private List<ChatItemViewModel> parseChats(String content) { /* ... */ return List.of(); }
-    private List<Message> parseMessages(String content) { /* ... */ return List.of(); }
-    private Message parseSingleMessage(Packet packet) { /* ... */ return null; }
-    private void updateMessageStatus(Packet packet) { /* ... */ }
-    private void renderChats(List<ChatItemViewModel> chats) { allChats.setAll(chats); }
-    private void renderMessages(List<Message> messages) { messageListView.getItems().setAll(messages); }
-    private void appendMessage(Message m) { messageListView.getItems().add(m); }
+    private List<Message> parseMessages(String jsonContent) {
+        if (jsonContent == null || jsonContent.isEmpty()) return new ArrayList<>();
+        Type messageListType = new TypeToken<ArrayList<Message>>(){}.getType();
+        return gson.fromJson(jsonContent, messageListType);
+    }
+
+    private void renderMessages(List<Message> messages) {
+        messageListView.getItems().setAll(messages);
+    }
 
     @FXML
     private void onSend() {
         String text = Optional.ofNullable(messageField.getText()).orElse("").trim();
         if (text.isEmpty() || currentChat == null) return;
-
-        Message local = new Message(UUID.randomUUID(), myUserId, currentChat.getChatId(), text,
-                new Timestamp(System.currentTimeMillis()), "SENT");
-        appendMessage(local);
+        Message local = new Message(UUID.randomUUID(), myUserId, currentChat.getChatId(), text, new Timestamp(System.currentTimeMillis()), "SENT");
+        messageListView.getItems().add(local);
         messageField.clear();
-
         Packet p = new Packet(PacketType.SEND_MESSAGE);
         p.setSenderId(myUserId);
         p.setReceiverId(currentChat.getChatId());
         p.setContent(text);
-        p.setTimestamp(new Timestamp(System.currentTimeMillis()));
         client.sendPacket(p);
     }
-
 }

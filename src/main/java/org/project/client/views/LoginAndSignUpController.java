@@ -1,5 +1,6 @@
 package org.project.client.views;
 
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
@@ -12,6 +13,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 import org.project.client.NetworkClient;
 import org.project.models.Packet;
 import org.project.models.PacketType;
@@ -92,28 +94,12 @@ public class LoginAndSignUpController {
 
                 Packet response = networkClient.getReceivedPacket();
 
-//                System.out.println("DEBUG >> Received packet type: " + response.getType() + " | content: " + response.getContent());
-
                 Platform.runLater(() -> {
                     if (response != null && response.isSuccess()) {
                         statusLabel.setText("Login Successful!");
-
-                        try {
-                            FXMLLoader loader = new FXMLLoader(getClass().getResource("/org/project/client/views/HomeView.fxml"));
-                            Parent root = loader.load();
-
-                            HomeController homeController = loader.getController();
-                            // فرض: response.getSenderId() یا چیزی مشابه userId برمی‌گردونه
-                            homeController.initWith(networkClient, response.getSenderId());
-
-                            Stage stage = (Stage) loginButton.getScene().getWindow();
-                            stage.setScene(new Scene(root));
-                            stage.setTitle("SamoonGram");
-                            stage.show();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                            statusLabel.setText("Failed to load Home view.");
-                        }
+                        PauseTransition pause = new PauseTransition(Duration.seconds(2));
+                        pause.setOnFinished(e -> loadHomePage(response));
+                        pause.play();
                     } else {
                         statusLabel.setText(response != null ? response.getErrorMessage() : "Login failed: No response.");
                         setButtonsDisabled(false);
@@ -124,6 +110,25 @@ public class LoginAndSignUpController {
         };
 
         new Thread(loginTask).start();
+    }
+
+    private void loadHomePage(Packet responsePacket) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/org/project/client/views/HomeView.fxml"));
+            Parent root = loader.load();
+
+            HomeController homeController = loader.getController();
+            homeController.initWith(networkClient, responsePacket.getReceiverId());
+
+            Stage stage = (Stage) loginButton.getScene().getWindow();
+            stage.setScene(new Scene(root));
+            stage.setTitle("Samoungram");
+            stage.show();
+        } catch (IOException e) {
+            e.printStackTrace();
+            statusLabel.setText("Failed to load Home view.");
+            setButtonsDisabled(false);
+        }
     }
 
     @FXML
@@ -152,8 +157,13 @@ public class LoginAndSignUpController {
                 Platform.runLater(() -> {
                     if (response != null && response.isSuccess()) {
                         statusLabel.setText("Registration Successful! Please log in.");
-                        isSignUpMode = false;
-                        updateModeUI();
+                        PauseTransition pause = new PauseTransition(Duration.seconds(2));
+                        pause.setOnFinished(e -> {
+                            isSignUpMode = false;
+                            updateModeUI();
+                            setButtonsDisabled(false);
+                        });
+                        pause.play();
                     } else {
                         statusLabel.setText(response != null ? response.getErrorMessage() : "Registration failed: No response.");
                         setButtonsDisabled(false);

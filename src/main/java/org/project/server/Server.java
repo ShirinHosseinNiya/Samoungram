@@ -1,29 +1,31 @@
 package org.project.server;
 
+import com.google.gson.Gson;
+import org.project.client.views.ChatItemViewModel;
 import org.project.models.Message;
 import org.project.models.Packet;
 import org.project.models.PacketType;
+import org.project.models.User;
 import org.project.server.db.*;
 
-import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.Timestamp;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Server {
     private final Map<UUID, ClientHandler> onlineUsers = new ConcurrentHashMap<>();
-
     private final UserDAO userDAO;
     private final MessageDAO messageDAO;
     private final GroupDAO groupDAO;
     private final ChannelDAO channelDAO;
     private final PrivateChatDAO privateChatDAO;
-
+    private final ChatDAO chatDAO;
+    private final Gson gson = new Gson();
 
     public Server(Connection conn) {
         this.userDAO = new UserDAO(conn);
@@ -31,6 +33,7 @@ public class Server {
         this.groupDAO = new GroupDAO(conn);
         this.channelDAO = new ChannelDAO(conn);
         this.privateChatDAO = new PrivateChatDAO(conn);
+        this.chatDAO = new ChatDAO(conn);
     }
 
     public UUID authenticateUser(String username, String password) throws SQLException {
@@ -43,77 +46,77 @@ public class Server {
 
     public void addOnlineUser(UUID userId, ClientHandler handler) {
         onlineUsers.put(userId, handler);
-        System.out.println("User online: " + userId + " | Total online: " + onlineUsers.size());
     }
 
     public void removeOnlineUser(UUID userId) {
         if (userId != null) {
             onlineUsers.remove(userId);
-            System.out.println("User offline: " + userId + " | Total online: " + onlineUsers.size());
+        }
+    }
+
+    public void searchAndSendResults(Packet packet) {
+        try {
+            List<User> users = userDAO.searchUsers(packet.getContent());
+            String jsonResults = gson.toJson(users);
+            Packet response = new Packet(PacketType.SEARCH_RESULTS);
+            response.setContent(jsonResults);
+            ClientHandler senderHandler = onlineUsers.get(packet.getSenderId());
+            if (senderHandler != null) {
+                senderHandler.send(response);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 
     public void sendPrivateMessage(Packet packet) throws SQLException {
-        Message message = new Message(UUID.randomUUID(), packet.getSenderId(), packet.getReceiverId(), packet.getContent(), packet.getTimestamp(), "SENT");
+        createPrivateChatIfNotExist(packet.getSenderId(), packet.getReceiverId());
+        Message message = new Message(
+                UUID.randomUUID(),
+                packet.getSenderId(),
+                packet.getReceiverId(),
+                packet.getContent(),
+                packet.getTimestamp(),
+                "SENT"
+        );
         messageDAO.addMessage(message);
-
         ClientHandler receiverHandler = onlineUsers.get(packet.getReceiverId());
         if (receiverHandler != null) {
-            receiverHandler.send(packet);
-        }
-
-        ClientHandler senderHandler = onlineUsers.get(packet.getSenderId());
-        if (senderHandler != null) {
-            senderHandler.send(packet);
+            Packet newMsgPacket = new Packet(PacketType.NEW_MESSAGE);
+            newMsgPacket.setContent(gson.toJson(message));
+            receiverHandler.send(newMsgPacket);
         }
     }
 
-    public void broadcastToGroup(UUID groupId, Packet packet) throws SQLException {
-        Message message = new Message(UUID.randomUUID(), packet.getSenderId(), groupId, packet.getContent(), packet.getTimestamp(), "SENT");
-        messageDAO.addMessage(message);
-
-        for (UUID memberId : groupDAO.listMembers(groupId)) {
-            ClientHandler handler = onlineUsers.get(memberId);
-            if (handler != null) {
-                handler.send(packet);
-            }
+    private void createPrivateChatIfNotExist(UUID user1, UUID user2) throws SQLException {
+        if (!privateChatDAO.privateChatExists(user1, user2)) {
+            privateChatDAO.createPrivateChat(user1, user2);
         }
     }
 
-    public void broadcastToChannel(UUID channelId, Packet packet) throws SQLException {
-        Message message = new Message(UUID.randomUUID(), packet.getSenderId(), channelId, packet.getContent(), packet.getTimestamp(), "SENT");
-        messageDAO.addMessage(message);
-
-        for (UUID memberId : channelDAO.listMembers(channelId)) {
-            ClientHandler handler = onlineUsers.get(memberId);
-            if (handler != null) {
-                handler.send(packet);
-            }
+    public void sendChatsList(Packet packet) {
+        try {
+            List<ChatItemViewModel> chats = chatDAO.getAllChatsForUser(packet.getSenderId());
+            String jsonResponse = gson.toJson(chats);
+            Packet response = new Packet(PacketType.CHATS_LIST);
+            response.setContent(jsonResponse);
+            onlineUsers.get(packet.getSenderId()).send(response);
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 
-    public UUID createGroup(String name, UUID creatorId) throws SQLException {
-        UUID groupId = UUID.randomUUID();
-        groupDAO.addGroup(groupId, name, creatorId);
-        groupDAO.addMemberToGroup(groupId, creatorId);
-        return groupId;
+    public void sendChatHistory(Packet packet) {
+        try {
+            List<Message> history = messageDAO.getHistoryForPrivateChat(packet.getSenderId(), packet.getReceiverId());
+            String jsonResponse = gson.toJson(history);
+            Packet response = new Packet(PacketType.MESSAGES_LIST);
+            response.setContent(jsonResponse);
+            onlineUsers.get(packet.getSenderId()).send(response);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
-
-    public void addMemberToGroup(UUID groupId, UUID memberId) throws SQLException {
-        groupDAO.addMemberToGroup(groupId, memberId);
-    }
-
-    public UUID createChannel(String name, UUID ownerId) throws SQLException {
-        UUID channelId = UUID.randomUUID();
-        channelDAO.addChannel(channelId, name, ownerId);
-        channelDAO.addMemberToChannel(channelId, ownerId);
-        return channelId;
-    }
-
-    public void addMemberToChannel(UUID channelId, UUID memberId) throws SQLException {
-        channelDAO.addMemberToChannel(channelId, memberId);
-    }
-
 
     public static void main(String[] args) {
         try {
@@ -122,11 +125,8 @@ public class Server {
             int port = 12345;
             ServerSocket serverSocket = new ServerSocket(port);
             System.out.println("Server started on port " + port + "...");
-
             while (true) {
                 Socket clientSocket = serverSocket.accept();
-                System.out.println("New client connected: " + clientSocket.getInetAddress());
-
                 ClientHandler handler = new ClientHandler(clientSocket, server);
                 new Thread(handler).start();
             }
