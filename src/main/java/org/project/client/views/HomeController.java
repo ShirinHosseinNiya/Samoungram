@@ -653,7 +653,7 @@ public class HomeController implements Initializable {
                 Platform.runLater(() -> showMembersDialog(packet.getContent()));
                 break;
             case PROFILE_DETAILS:
-                if (packet.getSenderId().equals(myUserId)) { // This is my own profile data
+                if (packet.getSenderId().equals(myUserId)) {
                     this.myUser = gson.fromJson(packet.getContent(), User.class);
                 } else {
                     Platform.runLater(() -> updateProfileSidebar(packet.getContent()));

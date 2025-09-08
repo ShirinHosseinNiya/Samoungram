@@ -84,7 +84,7 @@ class MessageListCell extends ListCell<Message> {
         return switch (st) {
             case SENT -> "✓";
             case DELIVERED -> "✓✓";
-            case READ -> "✓✓"; //  برای رنگی کردن تیک دوم باید در CSS استایل جداگانه تعریف کرد
+            case READ -> "✓✓";
         };
     }
 

@@ -113,7 +113,7 @@ public class Server {
         User user = userDAO.findUserById(profileOwnerId);
         if (user != null) {
             Packet response = new Packet(PacketType.PROFILE_DETAILS);
-            response.setSenderId(profileOwnerId); // خط اصلاح شده
+            response.setSenderId(profileOwnerId);
             response.setContent(gson.toJson(user));
             onlineUsers.get(packet.getSenderId()).send(response);
         }

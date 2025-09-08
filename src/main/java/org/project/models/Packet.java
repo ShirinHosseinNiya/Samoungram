@@ -7,7 +7,7 @@ import java.util.UUID;
 public class Packet implements Serializable {
     private PacketType type;
     private UUID senderId;
-    private UUID receiverId; // می‌تونه user/group/channel باشه
+    private UUID receiverId;
     private String content;
     private Timestamp timestamp;
     private boolean success;
