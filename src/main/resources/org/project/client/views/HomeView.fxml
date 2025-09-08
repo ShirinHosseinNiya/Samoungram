@@ -7,6 +7,8 @@
 <?import javafx.scene.control.ListView?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.control.Separator?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
@@ -22,10 +24,11 @@
                     <children>
                         <Label text="Samoungram" styleClass="sidebar-title"/>
                         <Region HBox.hgrow="ALWAYS"/>
+                        <Button fx:id="settingsButton" text="⚙" styleClass="settings-button" onAction="#onShowSettings"/>
                         <Button fx:id="themeToggleButton" onAction="#onToggleTheme" styleClass="theme-toggle-button"/>
                     </children>
                 </HBox>
-                <TextField fx:id="chatSearchField" promptText="Search" styleClass="search-field">
+                <TextField fx:id="chatSearchField" promptText="Search users or #channels" styleClass="search-field">
                     <VBox.margin>
                         <Insets bottom="10" top="5"/>
                     </VBox.margin>
@@ -72,6 +75,23 @@
             </bottom>
         </BorderPane>
     </center>
+    <right>
+        <VBox fx:id="profileSidebar" styleClass="profile-sidebar" prefWidth="250" visible="false" managed="false">
+            <padding>
+                <Insets top="20" right="20" bottom="20" left="20"/>
+            </padding>
+            <alignment>TOP_CENTER</alignment>
+            <spacing>10</spacing>
+            <children>
+                <ImageView fx:id="profileSidebarImageView" fitHeight="100" fitWidth="100" preserveRatio="true"/>
+                <Label fx:id="profileSidebarNameLabel" styleClass="profile-sidebar-name"/>
+                <Label fx:id="profileSidebarUsernameLabel" styleClass="profile-sidebar-username"/>
+                <Separator/>
+                <Label text="Bio" styleClass="profile-sidebar-header"/>
+                <TextArea fx:id="profileSidebarBioArea" styleClass="profile-sidebar-bio" editable="false" wrapText="true"/>
+            </children>
+        </VBox>
+    </right>
     <stylesheets>
         <URL value="@/org/project/client/views/css/styles.css"/>
     </stylesheets>
