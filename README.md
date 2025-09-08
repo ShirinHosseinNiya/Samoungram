@@ -7,9 +7,9 @@ A feature-rich desktop messaging application inspired by Telegram, built with Ja
 ![Gradle](https://img.shields.io/badge/Gradle-02303A?style=for-the-badge&logo=gradle&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
 
-![Login Page](assets/login-page.jpg)
+![Login Page](https://github.com/user-attachments/assets/1ecd513f-59a2-4382-9faf-557e12010e48)
 
-![Home Page](assets/home-page.jpg)
+![Home Page](https://github.com/user-attachments/assets/dc637321-2ab5-430c-b771-e9a01a9b98d8)
 
 ## Table of Contents
 
