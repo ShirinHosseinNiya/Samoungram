@@ -15,6 +15,47 @@ public class UserDAO {
         this.conn = conn;
     }
 
+    public void updateUserProfile(UUID userId, String profileName, String bio, String profilePicture) throws SQLException {
+        String sql = "UPDATE users SET profile_name = ?, bio = ?, profile_picture = ? WHERE id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, profileName);
+            ps.setString(2, bio);
+            ps.setString(3, profilePicture);
+            ps.setObject(4, userId);
+            ps.executeUpdate();
+        }
+    }
+
+    public void updateUserPassword(UUID userId, String newPasswordHash) throws SQLException {
+        String sql = "UPDATE users SET password_hash = ? WHERE id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, newPasswordHash);
+            ps.setObject(2, userId);
+            ps.executeUpdate();
+        }
+    }
+
+    public User findUserById(UUID userId) throws SQLException {
+        String sql = "SELECT * FROM users WHERE id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new User(
+                            (UUID) rs.getObject("id"),
+                            rs.getString("username"),
+                            rs.getString("password_hash"),
+                            rs.getString("profile_name"),
+                            rs.getString("status"),
+                            rs.getString("bio"),
+                            rs.getString("profile_picture")
+                    );
+                }
+            }
+        }
+        return null;
+    }
+
     public String getProfileNameById(UUID userId) throws SQLException {
         String sql = "SELECT profile_name FROM users WHERE id = ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -93,16 +134,6 @@ public class UserDAO {
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) return (UUID) rs.getObject(1);
                 return null;
-            }
-        }
-    }
-
-    public boolean findUserById(UUID userId) throws SQLException {
-        String sql = "SELECT 1 FROM users WHERE id = ?";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setObject(1, userId);
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next();
             }
         }
     }

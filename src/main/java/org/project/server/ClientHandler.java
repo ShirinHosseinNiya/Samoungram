@@ -3,6 +3,7 @@ package org.project.server;
 import com.google.gson.Gson;
 import org.project.models.Packet;
 import org.project.models.PacketType;
+import org.project.models.User;
 import org.project.server.db.UserDAO;
 
 import java.io.IOException;
@@ -65,8 +66,8 @@ public class ClientHandler implements Runnable {
                     }
                     break;
                 case SEND_MESSAGE:
-                    boolean isUser = new UserDAO(server.getConnection()).findUserById(packet.getReceiverId());
-                    if (isUser) {
+                    User user = new UserDAO(server.getConnection()).findUserById(packet.getReceiverId());
+                    if (user != null) {
                         server.sendPrivateMessage(packet);
                     } else {
                         server.sendGroupOrChannelMessage(packet);
@@ -109,6 +110,15 @@ public class ClientHandler implements Runnable {
                     break;
                 case RENAME_CHAT:
                     server.renameChat(packet);
+                    break;
+                case UPDATE_PROFILE:
+                    server.handleUpdateProfile(packet);
+                    break;
+                case CHANGE_PASSWORD:
+                    server.handleChangePassword(packet);
+                    break;
+                case VIEW_PROFILE:
+                    server.sendProfileDetails(packet);
                     break;
                 default:
                     System.out.println("Unknown packet type received: " + packet.getType());

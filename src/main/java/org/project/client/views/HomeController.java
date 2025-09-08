@@ -13,6 +13,8 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
@@ -20,11 +22,15 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
 import javafx.util.Duration;
 import javafx.util.Pair;
 import org.project.client.NetworkClient;
 import org.project.models.*;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.lang.reflect.Type;
 import java.net.URL;
 import java.sql.Timestamp;
@@ -51,6 +57,14 @@ public class HomeController implements Initializable {
     @FXML private Button leaveChatButton;
     @FXML private Button renameChatButton;
     @FXML private HBox composerHBox;
+    @FXML private Button settingsButton;
+    @FXML private VBox profileSidebar;
+    @FXML private ImageView profileSidebarImageView;
+    @FXML private Label profileSidebarNameLabel;
+    @FXML private Label profileSidebarUsernameLabel;
+    @FXML private TextArea profileSidebarBioArea;
+
+    private User myUser;
 
     private final ExecutorService listenerPool = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "packet-listener");
@@ -74,6 +88,11 @@ public class HomeController implements Initializable {
         this.myUserId = myUserId;
         startPacketListener();
         requestInitialChats();
+
+        Packet p = new Packet(PacketType.VIEW_PROFILE);
+        p.setSenderId(myUserId);
+        p.setReceiverId(myUserId);
+        client.sendPacket(p);
     }
 
     @Override
@@ -127,6 +146,18 @@ public class HomeController implements Initializable {
                     viewMembersButton.setManaged(isGroupOrChannel);
                 }
 
+                if (newV.getType() == ChatItemViewModel.ChatType.PRIVATE) {
+                    profileSidebar.setVisible(true);
+                    profileSidebar.setManaged(true);
+                    Packet p = new Packet(PacketType.VIEW_PROFILE);
+                    p.setSenderId(myUserId);
+                    p.setReceiverId(newV.getChatId());
+                    client.sendPacket(p);
+                } else {
+                    profileSidebar.setVisible(false);
+                    profileSidebar.setManaged(false);
+                }
+
                 if (newV.getUnread() > 0) {
                     Packet readPacket = new Packet(PacketType.MARK_AS_READ);
                     readPacket.setSenderId(myUserId);
@@ -178,6 +209,8 @@ public class HomeController implements Initializable {
         renameChatButton.setManaged(false);
         composerHBox.setVisible(true);
         composerHBox.setManaged(true);
+        profileSidebar.setVisible(false);
+        profileSidebar.setManaged(false);
     }
 
     private void handleChannelJoin(ChatItemViewModel channelItem) {
@@ -386,6 +419,89 @@ public class HomeController implements Initializable {
         });
     }
 
+    @FXML
+    private void onShowSettings() {
+        if (myUser == null) return;
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Settings");
+
+        DialogPane dialogPane = dialog.getDialogPane();
+        dialogPane.getStylesheets().addAll(mainPane.getScene().getStylesheets());
+        dialogPane.getStyleClass().add("custom-dialog");
+        dialogPane.getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        TabPane tabPane = new TabPane();
+        Tab profileTab = new Tab("Edit Profile");
+        Tab passwordTab = new Tab("Change Password");
+
+        GridPane profileGrid = new GridPane();
+        profileGrid.setHgap(10);
+        profileGrid.setVgap(10);
+        profileGrid.setPadding(new Insets(20));
+
+        TextField nameField = new TextField(myUser.getProfileName());
+        TextArea bioArea = new TextArea(myUser.getBio());
+        Button chooseImageButton = new Button("Choose...");
+        Label imagePathLabel = new Label(myUser.getProfilePicture() != null ? myUser.getProfilePicture() : "No file selected.");
+
+        profileGrid.add(new Label("Display Name:"), 0, 0);
+        profileGrid.add(nameField, 1, 0);
+        profileGrid.add(new Label("Bio:"), 0, 1);
+        profileGrid.add(bioArea, 1, 1);
+        profileGrid.add(new Label("Profile Picture:"), 0, 2);
+        profileGrid.add(new HBox(10, chooseImageButton, imagePathLabel), 1, 2);
+        profileTab.setContent(profileGrid);
+
+        GridPane passwordGrid = new GridPane();
+        passwordGrid.setHgap(10);
+        passwordGrid.setVgap(10);
+        passwordGrid.setPadding(new Insets(20));
+
+        PasswordField currentPassField = new PasswordField();
+        PasswordField newPassField = new PasswordField();
+        PasswordField confirmPassField = new PasswordField();
+
+        passwordGrid.add(new Label("Current Password:"), 0, 0);
+        passwordGrid.add(currentPassField, 1, 0);
+        passwordGrid.add(new Label("New Password:"), 0, 1);
+        passwordGrid.add(newPassField, 1, 1);
+        passwordGrid.add(new Label("Confirm New Password:"), 0, 2);
+        passwordGrid.add(confirmPassField, 1, 2);
+        passwordTab.setContent(passwordGrid);
+
+        tabPane.getTabs().addAll(profileTab, passwordTab);
+        dialogPane.setContent(tabPane);
+
+        chooseImageButton.setOnAction(e -> {
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Select Profile Picture");
+            File file = fileChooser.showOpenDialog(dialog.getOwner());
+            if (file != null) {
+                imagePathLabel.setText(file.getAbsolutePath());
+            }
+        });
+
+        dialog.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                Packet profilePacket = new Packet(PacketType.UPDATE_PROFILE);
+                profilePacket.setSenderId(myUserId);
+                String picPath = imagePathLabel.getText().equals("No file selected.") ? "" : imagePathLabel.getText();
+                profilePacket.setContent(nameField.getText() + ";" + bioArea.getText() + ";" + picPath);
+                client.sendPacket(profilePacket);
+
+                String currentPass = currentPassField.getText();
+                String newPass = newPassField.getText();
+                String confirmPass = confirmPassField.getText();
+                if (!newPass.isEmpty() && newPass.equals(confirmPass)) {
+                    Packet passPacket = new Packet(PacketType.CHANGE_PASSWORD);
+                    passPacket.setSenderId(myUserId);
+                    passPacket.setContent(currentPass + ";" + newPass);
+                    client.sendPacket(passPacket);
+                }
+            }
+        });
+    }
+
     private void showMembersDialog(String jsonContent) {
         Type listType = new TypeToken<ArrayList<MemberViewModel>>(){}.getType();
         List<MemberViewModel> members = gson.fromJson(jsonContent, listType);
@@ -440,7 +556,6 @@ public class HomeController implements Initializable {
                     p.setSenderId(myUserId);
                     p.setContent(currentChat.getChatId().toString() + ";" + member.getUserId().toString());
                     client.sendPacket(p);
-
                     getListView().getItems().remove(member);
                 });
 
@@ -488,8 +603,7 @@ public class HomeController implements Initializable {
                     Packet packet = client.getReceivedPacket();
                     Platform.runLater(() -> handleIncoming(packet));
                 }
-            } catch (InterruptedException ignored) {
-            }
+            } catch (InterruptedException ignored) {}
         });
     }
 
@@ -538,8 +652,42 @@ public class HomeController implements Initializable {
             case MEMBERS_LIST:
                 Platform.runLater(() -> showMembersDialog(packet.getContent()));
                 break;
+            case PROFILE_DETAILS:
+                if (packet.getSenderId().equals(myUserId)) { // This is my own profile data
+                    this.myUser = gson.fromJson(packet.getContent(), User.class);
+                } else {
+                    Platform.runLater(() -> updateProfileSidebar(packet.getContent()));
+                }
+                break;
+            case CHANGE_PASSWORD:
+                if (!packet.isSuccess()) {
+                    Platform.runLater(() -> {
+                        Alert alert = new Alert(Alert.AlertType.ERROR);
+                        alert.setTitle("Password Change Failed");
+                        alert.setHeaderText(packet.getErrorMessage());
+                        alert.showAndWait();
+                    });
+                }
+                break;
             default:
                 break;
+        }
+    }
+
+    private void updateProfileSidebar(String jsonContent) {
+        User user = gson.fromJson(jsonContent, User.class);
+        if (user == null) return;
+        profileSidebarNameLabel.setText(user.getProfileName());
+        profileSidebarUsernameLabel.setText("@" + user.getUsername());
+        profileSidebarBioArea.setText(user.getBio() != null ? user.getBio() : "");
+        if (user.getProfilePicture() != null && !user.getProfilePicture().isEmpty()) {
+            try {
+                profileSidebarImageView.setImage(new Image(new FileInputStream(user.getProfilePicture())));
+            } catch (FileNotFoundException e) {
+                profileSidebarImageView.setImage(null);
+            }
+        } else {
+            profileSidebarImageView.setImage(null);
         }
     }
 
