@@ -10,6 +10,7 @@ import org.project.models.Packet;
 import org.project.models.PacketType;
 import org.project.models.User;
 import org.project.server.db.*;
+import org.project.util.PasswordUtil;
 
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -45,9 +46,7 @@ public class Server {
         this.readMarkerDAO = new ReadMarkerDAO(conn);
     }
 
-    public Connection getConnection() {
-        return conn;
-    }
+    public Connection getConnection() { return conn; }
 
     public void addOnlineUser(UUID userId, ClientHandler handler) {
         onlineUsers.put(userId, handler);
@@ -65,9 +64,7 @@ public class Server {
         }
     }
 
-    public Set<UUID> getOnlineUserIds() {
-        return onlineUsers.keySet();
-    }
+    public Set<UUID> getOnlineUserIds() { return onlineUsers.keySet(); }
 
     private void broadcastPacket(Packet packet, UUID skipUserId) {
         for (Map.Entry<UUID, ClientHandler> entry : onlineUsers.entrySet()) {
@@ -78,11 +75,47 @@ public class Server {
     }
 
     public void markMessagesAsRead(UUID readerId, UUID chatId) throws SQLException {
-        boolean isUser = userDAO.findUserById(chatId);
-        if (isUser) {
+        User user = userDAO.findUserById(chatId);
+        if (user != null) {
             messageDAO.markMessagesAsRead(readerId, chatId);
         } else {
             readMarkerDAO.updateLastReadTimestamp(readerId, chatId);
+        }
+    }
+
+    public void handleUpdateProfile(Packet packet) throws SQLException {
+        String[] parts = packet.getContent().split(";", 3);
+        userDAO.updateUserProfile(packet.getSenderId(), parts[0], parts[1], parts[2]);
+        Packet response = new Packet(PacketType.SUCCESS);
+        response.setContent("Profile updated successfully.");
+        onlineUsers.get(packet.getSenderId()).send(response);
+    }
+
+    public void handleChangePassword(Packet packet) throws SQLException {
+        String[] parts = packet.getContent().split(";", 2);
+        String currentPassword = parts[0];
+        String newPassword = parts[1];
+        User user = userDAO.findUserById(packet.getSenderId());
+        Packet response = new Packet(PacketType.CHANGE_PASSWORD);
+        if (user != null && PasswordUtil.checkPassword(currentPassword, user.getPasswordHash())) {
+            String newHash = PasswordUtil.hashPassword(newPassword);
+            userDAO.updateUserPassword(user.getId(), newHash);
+            response.setSuccess(true);
+        } else {
+            response.setSuccess(false);
+            response.setErrorMessage("Current password is incorrect.");
+        }
+        onlineUsers.get(packet.getSenderId()).send(response);
+    }
+
+    public void sendProfileDetails(Packet packet) throws SQLException {
+        UUID profileOwnerId = packet.getReceiverId();
+        User user = userDAO.findUserById(profileOwnerId);
+        if (user != null) {
+            Packet response = new Packet(PacketType.PROFILE_DETAILS);
+            response.setSenderId(profileOwnerId);
+            response.setContent(gson.toJson(user));
+            onlineUsers.get(packet.getSenderId()).send(response);
         }
     }
 
@@ -102,7 +135,6 @@ public class Server {
             Packet newMsgPacket = new Packet(PacketType.NEW_MESSAGE);
             newMsgPacket.setContent(gson.toJson(message));
             receiverHandler.send(newMsgPacket);
-
             Packet refreshPacket = new Packet(PacketType.FETCH_CHATS);
             refreshPacket.setSenderId(receiverId);
             sendChatsList(refreshPacket);
@@ -112,24 +144,14 @@ public class Server {
     public void sendGroupOrChannelMessage(Packet packet) throws SQLException {
         UUID chatId = packet.getReceiverId();
         UUID senderId = packet.getSenderId();
-
         Channel channel = channelDAO.findChannelById(chatId);
-        if (channel != null) {
-            if (!channel.getChannelOwnerId().equals(senderId)) {
-                return;
-            }
-        }
+        if (channel != null && !channel.getChannelOwnerId().equals(senderId)) return;
 
         String senderProfileName = userDAO.getProfileNameById(senderId);
         Message message = new Message(UUID.randomUUID(), senderId, chatId, packet.getContent(), packet.getTimestamp(), "SENT", senderProfileName);
         messageDAO.addMessage(message);
 
-        List<UUID> memberIds;
-        if (channel != null) {
-            memberIds = channelDAO.listMembers(chatId);
-        } else {
-            memberIds = groupDAO.listMembers(chatId);
-        }
+        List<UUID> memberIds = (channel != null) ? channelDAO.listMembers(chatId) : groupDAO.listMembers(chatId);
 
         Packet newMsgPacket = new Packet(PacketType.NEW_MESSAGE);
         newMsgPacket.setContent(gson.toJson(message));
@@ -139,7 +161,6 @@ public class Server {
                 ClientHandler handler = onlineUsers.get(memberId);
                 if (handler != null) {
                     handler.send(newMsgPacket);
-
                     Packet refreshPacket = new Packet(PacketType.FETCH_CHATS);
                     refreshPacket.setSenderId(memberId);
                     sendChatsList(refreshPacket);
@@ -173,9 +194,7 @@ public class Server {
         String usernameOrId = parts[1];
 
         Channel channel = channelDAO.findChannelById(chatId);
-        if (channel != null && !channel.getChannelOwnerId().equals(requesterId)) {
-            return;
-        }
+        if (channel != null && !channel.getChannelOwnerId().equals(requesterId)) return;
 
         UUID userIdToAdd;
         try {
@@ -184,9 +203,7 @@ public class Server {
             userIdToAdd = userDAO.findUserIdByUsername(usernameOrId);
         }
 
-        if (userIdToAdd == null) {
-            return;
-        }
+        if (userIdToAdd == null) return;
 
         if (channel != null) {
             channelDAO.addMemberToChannel(chatId, userIdToAdd);
@@ -205,11 +222,8 @@ public class Server {
     public void sendMemberList(Packet packet) throws SQLException {
         UUID chatId = packet.getReceiverId();
         UUID requesterId = packet.getSenderId();
-
         Channel channel = channelDAO.findChannelById(chatId);
-        if (channel != null && !channel.getChannelOwnerId().equals(requesterId)) {
-            return;
-        }
+        if (channel != null && !channel.getChannelOwnerId().equals(requesterId)) return;
 
         List<MemberViewModel> members = new ArrayList<>();
         List<UUID> memberIds;
@@ -226,8 +240,7 @@ public class Server {
         for (UUID memberId : memberIds) {
             String profileName = userDAO.getProfileNameById(memberId);
             if (profileName != null) {
-                boolean isCreator = memberId.equals(creatorId);
-                members.add(new MemberViewModel(memberId, profileName, isCreator));
+                members.add(new MemberViewModel(memberId, profileName, memberId.equals(creatorId)));
             }
         }
 
@@ -262,7 +275,6 @@ public class Server {
     public void leaveChat(Packet packet) throws SQLException {
         UUID memberId = packet.getSenderId();
         UUID chatId = UUID.fromString(packet.getContent());
-
         if (groupDAO.findGroupById(chatId) != null) {
             groupDAO.removeMemberFromGroup(chatId, memberId);
         } else if (channelDAO.findChannelById(chatId) != null) {
@@ -275,7 +287,6 @@ public class Server {
         String[] parts = packet.getContent().split(";", 2);
         UUID chatId = UUID.fromString(parts[0]);
         String newName = parts[1];
-
         List<UUID> membersToNotify = new ArrayList<>();
 
         Channel channel = channelDAO.findChannelById(chatId);
@@ -309,9 +320,7 @@ public class Server {
             Packet response = new Packet(PacketType.SEARCH_RESULTS);
             response.setContent(jsonResults);
             onlineUsers.get(packet.getSenderId()).send(response);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        } catch (SQLException e) { e.printStackTrace(); }
     }
 
     public void searchAndSendResults(Packet packet) {
@@ -340,8 +349,8 @@ public class Server {
             UUID receivedId = packet.getReceiverId();
             UUID requesterId = packet.getSenderId();
             List<Message> history;
-            boolean isUser = userDAO.findUserById(receivedId);
-            if (isUser) {
+            User user = userDAO.findUserById(receivedId);
+            if (user != null) {
                 history = messageDAO.getHistoryForPrivateChat(requesterId, receivedId);
             } else {
                 history = messageDAO.getHistoryForGroupOrChannel(receivedId);
