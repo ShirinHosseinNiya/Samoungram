@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.net.URL?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane fx:id="mainPane" fx:controller="org.project.client.views.HomeController"
+            xmlns:fx="http://javafx.com/fxml/1" prefWidth="1000" prefHeight="640" styleClass="root">
+    <left>
+        <VBox fx:id="sidebarVBox" prefWidth="300" styleClass="sidebar">
+            <children>
+                <HBox alignment="CENTER_LEFT" styleClass="sidebar-header">
+                    <children>
+                        <Label text="Samoungram" styleClass="sidebar-title"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Button fx:id="themeToggleButton" onAction="#onToggleTheme" styleClass="theme-toggle-button"/>
+                    </children>
+                </HBox>
+                <TextField fx:id="chatSearchField" promptText="Search" styleClass="search-field">
+                    <VBox.margin>
+                        <Insets bottom="10" top="5"/>
+                    </VBox.margin>
+                </TextField>
+                <ListView fx:id="chatListView" VBox.vgrow="ALWAYS" styleClass="chat-list-view"/>
+                <HBox alignment="CENTER_LEFT" styleClass="sidebar-footer">
+                    <children>
+                        <Button fx:id="createChatButton" onAction="#onCreateChat" text="New Chat" styleClass="new-chat-button"/>
+                    </children>
+                </HBox>
+            </children>
+        </VBox>
+    </left>
+    <center>
+        <BorderPane>
+            <top>
+                <HBox alignment="CENTER_LEFT" styleClass="chat-header">
+                    <children>
+                        <Label fx:id="chatTitleLabel" styleClass="chat-title" text="Select a chat"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Button fx:id="renameChatButton" text="Rename" styleClass="header-button" onAction="#onRenameChat"/>
+                        <Button fx:id="addMemberButton" text="Add Member" styleClass="header-button" onAction="#onAddMember"/>
+                        <Button fx:id="viewMembersButton" text="View Members" styleClass="header-button" onAction="#onViewMembers"/>
+                        <Button fx:id="leaveChatButton" text="Leave" styleClass="header-button-leave" onAction="#onLeaveChat"/>
+                        <Label fx:id="typingLabel" styleClass="typing-label" text=""/>
+                    </children>
+                </HBox>
+            </top>
+            <center>
+                <ListView fx:id="messageListView" styleClass="message-list"/>
+            </center>
+            <bottom>
+                <HBox fx:id="composerHBox" styleClass="composer">
+                    <children>
+                        <TextArea fx:id="messageField" promptText="Message..." wrapText="true"
+                                  prefRowCount="1" styleClass="message-input" HBox.hgrow="ALWAYS"/>
+                        <StackPane styleClass="send-button-pane">
+                            <children>
+                                <Button fx:id="sendButton" text="Send" onAction="#onSend" styleClass="send-button"/>
+                            </children>
+                        </StackPane>
+                    </children>
+                </HBox>
+            </bottom>
+        </BorderPane>
+    </center>
+    <stylesheets>
+        <URL value="@/org/project/client/views/css/styles.css"/>
+    </stylesheets>
+</BorderPane>
